@@ -1,0 +1,42 @@
+# Build outputs
+**/target/
+**/build/
+**/out/
+**/dist/
+
+# IDE / Editor
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# macOS
+.DS_Store
+._*
+
+# Logs
+*.log
+logs/
+hs_err_pid*.log
+
+# Maven wrapper (opcional)
+!.mvn/wrapper/maven-wrapper.jar
+
+# Ambientes locales
+*.env
+.env
+.env.local
