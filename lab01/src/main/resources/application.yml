@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: demo-academico-lab01
+
+  datasource:
+    # =========================================
+    # ZONA DE CONEXIÓN A LA BD (H2 en memoria)
+    # =========================================
+    url: jdbc:h2:mem:demoacademico;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    # Crea/actualiza las tablas a partir de las clases @Entity
+    hibernate:
+      ddl-auto: update
+    # Mostrar el SQL en consola (didáctico)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    # Primero Hibernate crea las tablas y después se ejecuta data.sql
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
