@@ -360,3 +360,184 @@ Estos seis atributos son el lenguaje común del informe: se califican de forma h
 **Casos de uso.** Tareas programadas y procesos por lotes, procesamiento de archivos disparado por carga, *webhooks* e integraciones, APIs de tráfico bajo o muy variable y procesamiento de flujos de eventos. Es un buen complemento de una arquitectura principal más que un sustituto de ella.
 
 **Cuándo NO usarla.** Para cargas constantes y predecibles de alto volumen, operaciones de larga duración que exceden los límites del proveedor, cuando la latencia debe ser estable y baja, cuando se requiere portabilidad entre nubes, o en aplicaciones con estado en memoria y conexiones persistentes.
+
+
+# 14. Tabla comparativa general
+
+Las calificaciones son relativas entre sí, no absolutas: "Baja" en escalabilidad no significa que el sistema no escale, sino que el estilo no ofrece mecanismos propios para escalar partes de forma independiente. En **complejidad operativa**, a diferencia del resto de columnas, un valor alto es desfavorable.
+
+| Arquitectura | Mantenib. | Escalab. | Desacopl. | Testab. | Despliegue | Compl. oper. |
+|---|---|---|---|---|---|---|
+| En Capas | Media | Baja | Bajo | Media | Baja | Baja |
+| Cliente–Servidor | Media | Media | Medio | Media | Media | Baja |
+| Monolítica | Baja | Baja | Bajo | Media | Baja | Muy baja |
+| SOA | Media | Media | Medio | Baja | Baja | Alta |
+| Microservicios | Alta | Muy alta | Alto | Media | Muy alta | Muy alta |
+| Hexagonal | Alta | Media | Alto | Muy alta | Media | Baja |
+| Clean Architecture | Muy alta | Media | Muy alto | Muy alta | Media | Media |
+| Basada en Componentes | Alta | Media | Alto | Alta | Media | Media |
+| Orientada a Eventos | Alta | Alta | Muy alto | Baja | Alta | Alta |
+| MVC | Media | Baja | Medio | Media | Baja | Baja |
+| DDD | Muy alta | Media | Alto | Alta | Media | Media |
+| Serverless | Media | Muy alta | Alto | Baja | Muy alta | Media |
+
+Conviene añadir un criterio que la tabla no recoge y que explica buena parte de sus calificaciones: **con qué se trazan los límites internos**. En Capas y en MVC se parte por responsabilidad técnica; en Monolítica modular, Hexagonal y Clean Architecture por módulo de negocio o por anillo de dependencia; en SOA por capacidad empresarial; en Microservicios y DDD por contexto de negocio; en EDA por evento; y en Serverless por operación individual. Partir por criterio técnico produce módulos que siempre cambian juntos; partir por contexto de negocio produce módulos que cambian por separado.
+
+Hay dos observaciones que la tabla deja ver y que conviene hacer explícitas. La primera es que **no todas las filas son comparables entre sí**: MVC es un patrón de la capa de entrada, DDD es un enfoque de modelado y Cliente–Servidor es un estilo de distribución. Ninguno de los tres compite con Microservicios o con Hexagonal, y de hecho se combinan con ellos: un sistema puede ser simultáneamente cliente-servidor, hexagonal, modelado con DDD y usar MVC en su borde REST. Tratarlas como opciones mutuamente excluyentes es un error de categoría.
+
+La segunda es que **la complejidad operativa es el costo oculto** de las arquitecturas que mejor puntúan en escalabilidad y despliegue. Microservicios obtiene las mejores calificaciones en esas dos columnas y la peor en la última, y la correlación no es accidental: la independencia de despliegue se compra con infraestructura de observabilidad, automatización y manejo de fallos parciales que alguien tiene que construir y mantener.
+
+
+# 15. Caso aplicado: Sistema Académico
+
+Se toma como caso un **sistema académico universitario** que gestiona programas, asignaturas, grupos, estudiantes y matrículas —el mismo dominio del proyecto `demo-academico` del curso—. La regla de negocio más representativa es la de matrícula: un estudiante no puede matricularse dos veces en el mismo grupo y un grupo no puede exceder su cupo máximo. Esta sección analiza cómo se organizaría ese sistema en tres de las arquitecturas estudiadas y referencia ejemplos reales de cada estilo. No se implementa ninguna: el propósito es comparar decisiones de diseño y sus consecuencias.
+
+## 15.1 Opción A — Arquitectura en Capas
+
+**Ejemplo real de referencia.** Moodle, la plataforma de gestión de aprendizaje de mayor adopción en el ámbito universitario, está construida como un monolito organizado en capas, con separación entre presentación, lógica y acceso a datos documentada en su guía de desarrollo. Es un caso útil porque demuestra que una arquitectura en capas puede sostener un sistema académico de escala institucional durante dos décadas.
+
+```
+ ┌──────────────────────────────────────┐
+ │ PRESENTACIÓN                         │
+ │ Estudiante·Programa·Grupo·Matricula  │  Controllers
+ └──────────────────┬───────────────────┘
+                    ▼
+ ┌──────────────────────────────────────┐
+ │ SERVICIO — MatriculaService:         │
+ │  valida existencia · no duplicado ·  │
+ │  cupo        (todo en 1 transacción) │
+ └──────────────────┬───────────────────┘
+                    ▼
+ ┌──────────────────────────────────────┐
+ │ PERSISTENCIA                         │
+ │ EstudianteRepo · GrupoRepo · MatRepo │
+ └──────────────────┬───────────────────┘
+                    ▼   ┌─────────────────┐
+                        │ BD relacional   │
+                        └─────────────────┘
+```
+
+El servicio de matrícula inyecta los tres repositorios y ejecuta las validaciones en una sola transacción. Es la solución más directa y la que menos código requiere. Su problema arquitectónico es visible en el diagrama: `MatriculaService` depende de los repositorios de estudiantes y de grupos, es decir, **conoce cómo se persisten entidades que no le pertenecen**. Si mañana el acceso a estudiantes cambia —pasa a consultarse a un servicio externo de la universidad, por ejemplo—, hay que modificar el servicio de matrículas, que no tenía por qué enterarse. Este es exactamente el acoplamiento que corrige el Lab 03 del curso.
+
+## 15.2 Opción B — Hexagonal con módulos y puertos
+
+**Ejemplo real de referencia.** El propio proyecto `demo-academico` en su versión del Lab 03 aplica puertos y adaptadores: el módulo `matriculas` tiene prohibido inyectar `EstudianteRepository` o `GrupoRepository` y debe comunicarse mediante los puertos `EstudianteQueryPort` y `GrupoQueryPort`, implementados por los servicios de los módulos dueños.
+
+```
+ ┌───────────────────────────────────────────┐
+ │ ADAPTADORES DE ENTRADA (REST)             │
+ └─────────────────────┬─────────────────────┘
+                       ▼
+ ┌───────────────────────────────────────────┐
+ │ MÓDULO matriculas — MatriculaService      │
+ │  depende SOLO de:                         │
+ │   · EstudianteQueryPort   (interfaz)      │
+ │   · GrupoQueryPort        (interfaz)      │
+ │   · MatriculaRepository   (propio)        │
+ └────────┬────────────────────────┬─────────┘
+          │ contrato               │ contrato
+          ▼                        ▼
+ ┌──────────────────┐    ┌──────────────────┐
+ │ MÓDULO           │    │ MÓDULO grupos    │
+ │ estudiantes      │    │                  │
+ │ implementa       │    │ implementa       │
+ │ EstudianteQuery  │    │ GrupoQueryPort   │
+ │ Port             │    │                  │
+ │   ▼ Repository   │    │   ▼ Repository   │
+ │     (privado)    │    │     (privado)    │
+ └──────────────────┘    └──────────────────┘
+  matriculas NUNCA importa ...estudiantes.repository
+  matriculas NUNCA importa ...grupos.repository
+```
+
+El cambio respecto a la opción A es pequeño en código y grande en consecuencias. El módulo de matrículas sigue ejecutándose en el mismo proceso y dentro de la misma transacción, pero ya no depende de la implementación de persistencia ajena sino de un contrato. Esto habilita dos cosas: la regla de cupo se puede probar sustituyendo los puertos por dobles en memoria, sin base de datos; y si en el futuro se decide extraer el módulo de estudiantes a un servicio aparte, el cambio se concentra en escribir un adaptador que implemente `EstudianteQueryPort` llamando por HTTP, sin tocar la lógica de matrícula. Mantiene el costo operativo de un monolito —un despliegue, una transacción, un log— mientras obtiene el desacoplamiento de una arquitectura modular.
+
+## 15.3 Opción C — Microservicios
+
+**Ejemplo real de referencia.** Netflix y Uber han documentado públicamente en sus blogs de ingeniería la migración de un monolito a cientos de servicios independientes, motivada por la necesidad de escalar partes del sistema de forma dispar y de permitir que decenas de equipos desplieguen sin coordinarse. Son los casos canónicos del estilo y sirven también para ilustrar cuándo *sí* se justifica.
+
+```
+            ┌──────────────────┐
+            │   API Gateway    │
+            └────┬────────┬────┘
+      ┌──────────┘        └──────────┐
+      ▼                              ▼
+ ┌──────────────────┐      ┌──────────────────┐
+ │ SVC Estudiantes  │      │ SVC Académico    │
+ │ (programas,      │      │ (asignaturas,    │
+ │  estudiantes)    │      │  grupos)         │
+ │   ▼ BD propia    │      │   ▼ BD propia    │
+ └────────┬─────────┘      └────────┬─────────┘
+          │  HTTP / evento          │
+          └───────────┬─────────────┘
+                      ▼
+          ┌───────────────────────┐
+          │ SVC Matrículas        │
+          │ consulta por API      │
+          │ NO lee BD ajena       │
+          │   ▼ BD propia         │
+          └───────────────────────┘
+  La validación de cupo deja de ser transaccional:
+  requiere reserva previa de cupo o una saga.
+```
+
+Aquí aparece el problema de fondo. La regla "no superar el cupo" deja de resolverse con una transacción, porque el conteo de matrículas vive en el servicio de matrículas y el cupo máximo vive en el servicio académico. Dos peticiones concurrentes pueden leer el mismo conteo y ambas concluir que hay cupo. Resolverlo exige mecanismos adicionales: una reserva de cupo en el servicio dueño del grupo, o una saga con compensación si la matrícula falla después de reservar.
+
+Es decir: el microservicio no simplifica la regla de negocio, la complica. Y a cambio ofrece algo que un sistema académico universitario rara vez necesita —escalar matrículas con independencia de estudiantes— y que además tiene carácter estacional, porque el pico de carga ocurre unas semanas al año, lo que se resuelve con mucho menos esfuerzo replicando un monolito durante ese periodo.
+
+## 15.4 Decisión y justificación
+
+| Criterio | Capas | Hexagonal + módulos | Microservicios |
+|---|---|---|---|
+| Esfuerzo inicial | Muy bajo | Bajo | Muy alto |
+| Testabilidad de la regla de cupo | Requiere BD | Sin BD, con dobles | Requiere entorno completo |
+| Consistencia del cupo | Transaccional | Transaccional | Eventual / saga |
+| Acoplamiento entre módulos | Alto | Bajo | Bajo |
+| Complejidad operativa | Muy baja | Baja | Muy alta |
+| Equipo necesario | 1–3 personas | 1–5 personas | Varios equipos |
+
+Para este caso la opción adecuada es la **B: hexagonal con módulos y puertos**. La razón no es que sea la más sofisticada, sino que es la única que mejora el atributo que realmente está en juego —el desacoplamiento entre módulos y la testabilidad de las reglas— sin pagar el costo que no se necesita.
+
+La opción A funciona y es un punto de partida legítimo, pero deja que el módulo de matrículas conozca la persistencia de módulos ajenos, lo que se convierte en deuda en cuanto el sistema crece. La opción C resuelve problemas que este sistema no tiene —escala masiva, equipos múltiples, autonomía de despliegue— y rompe algo que sí tiene y que es crítico: la consistencia inmediata de la regla de cupo. Siguiendo el criterio de Newman (2021), migrar a microservicios debe responder a un problema concreto identificado, y en un sistema académico de alcance institucional ese problema no está presente.
+
+Conviene añadir que la opción B deja abierta la puerta a la C: un módulo que ya se comunica por puertos puede extraerse a un servicio independiente reemplazando el adaptador local por uno remoto, sin reescribir la lógica. Elegir B hoy no cierra el camino a C mañana, lo prepara.
+
+# 16. Conclusiones
+
+**No existe una arquitectura superior, sino decisiones adecuadas a un contexto.** Calificar doce estilos frente a seis atributos deja claro que ninguna fila gana en todas las columnas: Microservicios obtiene las mejores notas en escalabilidad y despliegue y la peor en complejidad operativa, mientras que la arquitectura en capas obtiene la mejor en costo de entrada y las peores en desacoplamiento. La pregunta útil no es cuál es mejor, sino qué atributo está realmente en juego en el sistema que se va a construir.
+
+**El criterio para trazar límites importa más que el estilo elegido.** La diferencia entre un sistema modular y uno acoplado no depende de si se usan microservicios, sino de con qué criterio se cortan las partes. Partir por capas técnicas produce módulos que siempre cambian juntos; partir por contexto de negocio produce módulos que cambian por separado. Esta es la razón por la que DDD aparece como paso previo a cualquier partición seria, y por la que un monolito modular bien delimitado suele ser preferible a microservicios mal delimitados.
+
+**La complejidad distribuida se paga completa y por adelantado.** El caso aplicado lo muestra con precisión: convertir la validación de cupo en una operación entre servicios no la hace más escalable, la hace más difícil, pasando de una verificación transaccional de tres líneas a requerir reserva de cupo o una saga con compensación. Esa complejidad solo se justifica cuando existe un problema de escala u organización que el monolito demostradamente no resuelve.
+
+**La decisión correcta es la que mantiene abiertas las opciones futuras al menor costo presente.** Es la conclusión más transferible del informe: la arquitectura hexagonal con módulos se eligió no porque resuelva hoy un problema de escala, sino porque desacopla a costo bajo y prepara el camino hacia una eventual extracción de servicios. Una arquitectura que se puede evolucionar vale más que una que acierta el destino final desde el principio, porque en software el destino final casi nunca se conoce al empezar.
+
+# 17. Referencias
+
+Bass, L., Clements, P., & Kazman, R. (2021). *Software architecture in practice* (4th ed.). Addison-Wesley.
+
+Cockburn, A. (2005). *Hexagonal architecture*. https://alistair.cockburn.us/hexagonal-architecture/
+
+Erl, T. (2005). *Service-oriented architecture: Concepts, technology, and design*. Prentice Hall.
+
+Evans, E. (2003). *Domain-driven design: Tackling complexity in the heart of software*. Addison-Wesley.
+
+Fowler, M. (2002). *Patterns of enterprise application architecture*. Addison-Wesley.
+
+Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns: Designing, building, and deploying messaging solutions*. Addison-Wesley.
+
+International Organization for Standardization. (2011). *ISO/IEC 25010:2011 — Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models*. ISO.
+
+Krasner, G. E., & Pope, S. T. (1988). A cookbook for using the model-view controller user interface paradigm in Smalltalk-80. *Journal of Object-Oriented Programming*, 1(3), 26–49.
+
+Martin, R. C. (2017). *Clean architecture: A craftsman's guide to software structure and design*. Prentice Hall.
+
+Newman, S. (2021). *Building microservices: Designing fine-grained systems* (2nd ed.). O'Reilly Media.
+
+Richards, M., & Ford, N. (2020). *Fundamentals of software architecture: An engineering approach*. O'Reilly Media.
+
+Roberts, M., & Chapin, J. (2017). *What is serverless?* O'Reilly Media.
+
+Szyperski, C. (2002). *Component software: Beyond object-oriented programming* (2nd ed.). Addison-Wesley.
+
+Vernon, V. (2013). *Implementing domain-driven design*. Addison-Wesley.
