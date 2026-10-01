@@ -1,0 +1,28 @@
+services:
+
+  app:
+    image: demoacademico
+    container_name: demoacademico-app
+    # El enunciado usa 8080:8080. En este equipo el puerto 8080 del host ya
+    # está ocupado por otro contenedor, así que publicamos en 8081.
+    # El puerto interno del contenedor sigue siendo 8080.
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: demoacademico-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: demoacademico
+      MYSQL_USER: demo
+      MYSQL_PASSWORD: demo123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

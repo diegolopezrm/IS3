@@ -1,0 +1,252 @@
+########## 6. VERIFICAR INSTALACION ##########
+$ docker --version
+Docker version 29.4.0, build 9d7ad9ff18
+$ docker info (extracto)
+Server Version: 29.2.1
+Operating System: Ubuntu 24.04.4 LTS
+Architecture: aarch64
+Total Memory: 4096299008
+Containers: 9  Images: 78
+
+########## 7. PRIMER CONTENEDOR DE PRUEBA ##########
+$ docker run hello-world
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (arm64v8)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+
+########## 8. SERVIDOR WEB EN UN CONTENEDOR ##########
+$ docker run -d -p 8088:80 --name mi-nginx nginx
+a7bbd5c250714372b055369725fd01763743f45deb0dd8ab2fb842528756a11d
+$ curl -s -o /dev/null -w 'HTTP %{http_code}' http://localhost:8088
+HTTP 200
+$ curl -s http://localhost:8088 | head -5
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+
+########## 9. DOS CONTENEDORES / PUERTOS DISTINTOS ##########
+$ docker rm -f mi-nginx   (libero el 8088)
+mi-nginx
+$ docker run -d -p 8088:80 --name nginx1 nginx
+e91aeeca8be11aeab81b3db1a7f0266746a5cea111327c0e22f98e504d1b3fa0
+$ docker run -d -p 8089:80 --name nginx2 nginx
+a64bc2b8e422c31177ef328c4df2bdd053d93ab7452219625e447463049d0094
+$ curl localhost:8088 / localhost:8089
+  8088 -> HTTP 200
+  8089 -> HTTP 200
+$ docker ps --filter name=nginx
+NAMES     IMAGE     PORTS
+nginx2    nginx     0.0.0.0:8089->80/tcp, [::]:8089->80/tcp
+nginx1    nginx     0.0.0.0:8088->80/tcp, [::]:8088->80/tcp
+
+--- prueba de conflicto: dos contenedores pidiendo el MISMO puerto del host ---
+$ docker run -d -p 8088:80 --name nginx3 nginx
+docker: Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint nginx3 (06325c12631bc0190bf3cc9c60d05865664e52f58e92d67091c8de97718e9445): Bind for 0.0.0.0:8088 failed: port is already allocated
+
+Run 'docker run --help' for more information
+
+########## 12. COMPILAR LA APLICACION JAVA ##########
+$ mvn clean package
+[INFO] Building jar: /Users/diegolopez/Documents/UIS/IS3/clase03/target/demo-academico-0.0.1-SNAPSHOT.jar
+[INFO] Replacing main artifact /Users/diegolopez/Documents/UIS/IS3/clase03/target/demo-academico-0.0.1-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] BUILD SUCCESS
+[INFO] Total time:  1.492 s
+$ ls -lh target/*.jar
+53M target/demo-academico-0.0.1-SNAPSHOT.jar
+
+########## 15. CONSTRUIR LA IMAGEN ##########
+$ docker build -t demoacademico .
+ ---> Running in e6f3c9ae7897
+ ---> Removed intermediate container e6f3c9ae7897
+ ---> 5e5a865b3f61
+Step 5/8 : WORKDIR ${WORKSPACE}
+ ---> Running in 250bdd92c94d
+ ---> Removed intermediate container 250bdd92c94d
+ ---> 6cb4bf076bb7
+Step 6/8 : COPY target/*.jar app.jar
+ ---> f3ad86333205
+Step 7/8 : EXPOSE 8080
+ ---> Running in 81788addade3
+ ---> Removed intermediate container 81788addade3
+ ---> 0895cd5d5fee
+Step 8/8 : ENTRYPOINT ["java","-Xmx1024m","-jar","app.jar"]
+ ---> Running in 53c323f2029f
+ ---> Removed intermediate container 53c323f2029f
+ ---> 225e93eaef24
+Successfully built 225e93eaef24
+Successfully tagged demoacademico:latest
+real 6.04
+user 0.03
+sys 0.09
+
+$ docker images
+REPOSITORY             TAG                      IMAGE ID       SIZE
+demoacademico          latest                   225e93eaef24   862MB
+nginx                  latest                   f9ea18bfa4fa   261MB
+eclipse-temurin        21-jdk                   f9bf7e9fe2f9   762MB
+maven                  3.9-eclipse-temurin-21   99e61abcff91   847MB
+eclipse-temurin        21-jdk-alpine            0bfc69a4758a   556MB
+mysql                  8.0                      7dcddc01f13b   1.09GB
+
+########## 16. EJECUTAR EL CONTENEDOR DE LA APLICACION ##########
+# El enunciado usa -p 8080:8080, pero el 8080 del host está ocupado
+# por otro contenedor en este equipo, así que publico en 8081.
+$ docker run -d -p 8081:8080 --name demoacademico demoacademico
+b9a097ffb93db088afd40ff72489807e969976ab900f684197d06ee3e150c7f8
+$ docker ps
+NAMES           IMAGE           STATUS          PORTS
+demoacademico   demoacademico   Up 25 seconds   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp
+
+$ docker logs demoacademico (extracto)
+2026-10-14T14:30:30.841-05:00  INFO 1 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-14T14:30:30.866-05:00  INFO 1 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-10-14T14:30:30.879-05:00  INFO 1 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-14T14:30:31.347-05:00  INFO 1 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+       drop constraint if exists UKtbc5806vbo6w5mcbmkqom1m0n
+$ docker logs demoacademico | grep 'Started'
+2026-10-14T14:30:31.714-05:00  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-10-14T14:30:31.720-05:00  INFO 1 --- [           main] c.e.d.DemoAcademicoApplication           : Started DemoAcademicoApplication in 2.02 seconds (process running for 2.35)
+
+# La zona horaria del log es -05:00 -> confirma ENV TZ=America/Bogota
+
+########## PROBAR EL SERVICIO (localhost:8081) ##########
+$ curl http://localhost:8081/api/estudiantes?page=0&size=2
+{"success":true,"message":"OK","data":{"content":[{"id":1,"nombre":"Sta. María Soledad Arreola Caballero","email":"est0_juana.sarabia@yahoo.com"},{"id":2,"nombre":"José Luis Valadez Delarosa","email":"est1_ernesto.corrales@yahoo.com"}],"pageable":{"pageNumber":0,"pageSize":2,"sort":{"empty":true,"sorted":false,"unsorted":true},"offset":0,"paged":true,"unpaged":false},"last":false,"totalElements":500,"totalPages":250,"size":2,"number":0,"sort":{"empty":true,"sorted":false,"unsorted":true},"first":true,"numberOfElements":2,"empty":false},"timestamp":"2026-10-14T19:31:07.344349439Z"}
+HTTP 200
+
+$ curl -o /dev/null -w 'HTTP %{http_code}' http://localhost:8081/swagger-ui/index.html
+swagger-ui -> HTTP 200
+$ POST estudiante nuevo
+{"success":true,"message":"Estudiante creado","data":{"id":501,"nombre":"Ana Perez","email":"ana.perez@clase03.com"},"timestamp":"2026-10-14T19:31:07.572493093Z"}
+HTTP 201
+$ POST con el mismo email (error controlado)
+{"success":false,"message":"Ya existe un estudiante con ese email","data":null,"timestamp":"2026-10-14T19:31:07.595463368Z"}
+HTTP 400
+
+$ docker stop demoacademico && docker rm demoacademico   (libero el 8081 para Compose)
+contenedor eliminado
+
+########## 23. EJECUTAR DOCKER COMPOSE ##########
+$ docker compose up -d
+ Volume clase03_mysql_data Creating 
+ Volume clase03_mysql_data Created 
+ Container demoacademico-db Creating 
+ Container demoacademico-db Created 
+ Container demoacademico-app Creating 
+ Container demoacademico-app Created 
+ Container demoacademico-db Starting 
+ Container demoacademico-db Started 
+ Container demoacademico-app Starting 
+ Container demoacademico-app Started 
+
+$ docker compose ps
+NAME                IMAGE           COMMAND                  SERVICE   CREATED          STATUS          PORTS
+demoacademico-app   demoacademico   "java -Xmx1024m -jar…"   app       31 seconds ago   Up 30 seconds   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp
+demoacademico-db    mysql:8.0       "docker-entrypoint.s…"   db        31 seconds ago   Up 30 seconds   33060/tcp, 0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp
+
+$ docker ps
+NAMES               IMAGE           STATUS          PORTS
+demoacademico-app   demoacademico   Up 30 seconds   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp
+demoacademico-db    mysql:8.0       Up 30 seconds   33060/tcp, 0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp
+
+$ docker logs demoacademico-app (extracto)
+2026-10-14T14:31:21.189-05:00  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-14T14:31:21.489-05:00  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-14T14:31:23.506-05:00  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+
+$ docker logs demoacademico-db (extracto)
+2026-10-14T19:31:25.153561Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Socket: /var/run/mysqld/mysqlx.sock
+2026-10-14T19:31:25.153660Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.46'  socket: '/var/run/mysqld/mysqld.sock'  port: 0  MySQL Community Server - GPL.
+2026-10-14 19:31:25+00:00 [Note] [Entrypoint]: Creating database demoacademico
+2026-10-14 19:31:25+00:00 [Note] [Entrypoint]: Creating user demo
+
+$ curl http://localhost:8081/api/estudiantes (la app sigue respondiendo bajo Compose)
+app -> HTTP 200
+
+$ nc -z localhost 3307 (MySQL publicado en el host)
+Connection to localhost port 3307 [tcp/opsession-prxy] succeeded!
+puerto 3307 del host responde -> MySQL accesible
+$ docker exec demoacademico-db mysql -udemo -pdemo123 -e 'SHOW DATABASES;'
+Database
+demoacademico
+information_schema
+performance_schema
+
+########## 23. VERIFICAR VOLUMENES ##########
+$ docker volume ls | grep mysql_data
+DRIVER    VOLUME NAME
+local     clase03_mysql_data
+$ docker volume inspect clase03_mysql_data
+  Name: clase03_mysql_data
+  Driver: local
+  Mountpoint: /var/lib/docker/volumes/clase03_mysql_data/_data
+
+########## DEMOSTRACION DE PERSISTENCIA DEL VOLUMEN ##########
+$ Creo una tabla y un registro dentro de MySQL
+id	nota
+1	escrito antes del compose down
+
+########## 24. DETENER LOS SERVICIOS ##########
+$ docker compose down
+ Container demoacademico-app Removing 
+ Container demoacademico-app Removed 
+ Container demoacademico-db Stopping 
+ Container demoacademico-db Stopped 
+ Container demoacademico-db Removing 
+ Container demoacademico-db Removed 
+ Network clase03_default Removing 
+ Network clase03_default Removed 
+
+$ docker ps -a | grep demoacademico   (los contenedores ya no existen)
+  (ninguno: los contenedores fueron eliminados)
+$ docker volume ls | grep clase03   (el volumen SI sobrevive)
+local     clase03_mysql_data
+
+$ docker compose up -d   (vuelvo a levantar desde cero)
+ Network clase03_default Created 
+ Container demoacademico-db Created 
+ Container demoacademico-app Created 
+ Container demoacademico-db Started 
+ Container demoacademico-app Started 
+$ Consulto la tabla que creé antes de destruir los contenedores
+id	nota
+1	escrito antes del compose down
+
+########## OBSERVACION: la app NO usa el MySQL del compose ##########
+$ docker exec demoacademico-app env | grep -i spring   (no hay variables de datasource)
+  variables SPRING_* definidas: 0
+$ docker logs demoacademico-app | grep -i 'h2\|jdbc'
+H2 console available at '/h2-console'.
+jdbc:h2:mem:demoacademico
+$ Tablas en el MySQL del compose:
+Tables_in_demoacademico
+prueba_persistencia
+  -> solo está la tabla de prueba que creé a mano; la app no creó 'estudiante' allí.
+
+########## LIMPIEZA ##########
+$ docker compose down
+ Container demoacademico-app Removed 
+ Container demoacademico-db Removed 
+ Network clase03_default Removed 
+$ docker volume rm clase03_mysql_data -> volumen de prueba eliminado
+$ docker rmi demoacademico -> imagen eliminada
+
+$ docker ps  (queda solo lo que ya estaba corriendo antes del laboratorio)
+dinkgo-postgres
+jupyterhub
+mi-backend-api
+nbexchange
+postgres-db
