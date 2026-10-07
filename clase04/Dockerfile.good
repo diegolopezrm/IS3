@@ -1,0 +1,9 @@
+# Enfoque 2: el .jar se compila FUERA y Docker solo lo ejecuta.
+# La imagen final no contiene Maven, ni código fuente, ni dependencias de build.
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+COPY target/demo-academico-0.0.1-SNAPSHOT.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

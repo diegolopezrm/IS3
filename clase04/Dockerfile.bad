@@ -1,0 +1,12 @@
+# Enfoque 1: la compilación ocurre DENTRO del Dockerfile.
+# La imagen final arrastra Maven, el JDK completo, el código fuente y el
+# repositorio ~/.m2 con todas las dependencias descargadas.
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+
+COPY . .
+
+RUN mvn clean package -DskipTests
+
+CMD ["java", "-jar", "target/demo-academico-0.0.1-SNAPSHOT.jar"]
