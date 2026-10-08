@@ -1,0 +1,215 @@
+########## 6. ESTRUCTURA DEL PROYECTO ##########
+$ find . -name '*.java' -o -name 'pom.xml' -o -name 'Dockerfile*' -o -name '*.yml' | grep -v target | sort
+./Dockerfile.bad
+./Dockerfile.good
+./Dockerfile.multi
+./pom.xml
+./src/main/java/co/edu/demoacademico/DemoAcademicoApplication.java
+./src/main/java/co/edu/demoacademico/api/ApiResponse.java
+./src/main/java/co/edu/demoacademico/api/ResponseBuilder.java
+./src/main/java/co/edu/demoacademico/config/DataSeeder.java
+./src/main/java/co/edu/demoacademico/controller/EstudianteController.java
+./src/main/java/co/edu/demoacademico/controller/GlobalExceptionHandler.java
+./src/main/java/co/edu/demoacademico/controller/HolaController.java
+./src/main/java/co/edu/demoacademico/dto/EstudianteCreateDTO.java
+./src/main/java/co/edu/demoacademico/dto/EstudianteDTO.java
+./src/main/java/co/edu/demoacademico/dto/EstudianteUpdateDTO.java
+./src/main/java/co/edu/demoacademico/exception/BusinessException.java
+./src/main/java/co/edu/demoacademico/exception/NotFoundException.java
+./src/main/java/co/edu/demoacademico/handler/EstudianteHandler.java
+./src/main/java/co/edu/demoacademico/model/Estudiante.java
+./src/main/java/co/edu/demoacademico/repository/EstudianteRepository.java
+./src/main/java/co/edu/demoacademico/service/EstudianteService.java
+./src/main/java/co/edu/demoacademico/service/EstudianteServiceImpl.java
+./src/main/resources/application.yml
+
+########## 7. VALIDACION LOCAL ##########
+$ mvn clean package
+[INFO] Compiling 17 source files with javac [debug parameters release 21] to target/classes
+[INFO] Building jar: /Users/diegolopez/Documents/UIS/IS3/clase04/target/demo-academico-0.0.1-SNAPSHOT.jar
+[INFO] BUILD SUCCESS
+[INFO] Total time:  1.348 s
+$ ls -lh target/*.jar
+53M target/demo-academico-0.0.1-SNAPSHOT.jar
+
+$ java -jar target/demo-academico-0.0.1-SNAPSHOT.jar --server.port=8081  (en segundo plano)
+2026-10-14T14:36:20.636-05:00  INFO 41008 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2026-10-14T14:36:20.647-05:00  INFO 41008 --- [           main] c.e.d.DemoAcademicoApplication           : Started DemoAcademicoApplication in 1.688 seconds (process running for 1.897)
+$ curl http://localhost:8081/hola
+Hola desde Spring Boot con Docker
+HTTP 200
+
+########## 8. ENFOQUE 1 — COMPILAR DENTRO DEL DOCKERFILE ##########
+$ du -sh .  (tamaño del contexto que se envía al daemon)
+ 53M	.
+$ docker build -f Dockerfile.bad -t spring-docker-bad .
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  53.423 s
+[INFO] Finished at: 2026-10-14T19:37:30Z
+[INFO] ------------------------------------------------------------------------
+ ---> Removed intermediate container f645b464bda4
+ ---> 50a454ca03b6
+Step 5/5 : CMD ["java", "-jar", "target/demo-academico-0.0.1-SNAPSHOT.jar"]
+ ---> Running in eebee666d0e2
+ ---> Removed intermediate container eebee666d0e2
+ ---> 31a0f0aa52bd
+Successfully built 31a0f0aa52bd
+Successfully tagged spring-docker-bad:latest
+docker build -f Dockerfile.bad -t spring-docker-bad .  0.16s user 0.32s system 0% cpu 1:04.50 total
+
+########## 9. ENFOQUE 2 — COMPILACION SEPARADA, DOCKER SOLO EJECUTA ##########
+$ docker build -f Dockerfile.good -t spring-docker-good .
+ ---> a6a89290eb4c
+Step 4/4 : ENTRYPOINT ["java", "-jar", "app.jar"]
+ ---> Running in e274a954cccb
+ ---> Removed intermediate container e274a954cccb
+ ---> 620ca614c8e9
+Successfully built 620ca614c8e9
+Successfully tagged spring-docker-good:latest
+docker build -f Dockerfile.good -t spring-docker-good .  0.03s user 0.09s system 5% cpu 2.138 total
+
+########## 10. ENFOQUE 3 — MULTI-STAGE ##########
+$ docker build -f Dockerfile.multi -t spring-docker-multi .
+ ---> 54a4beb87e3b
+Step 7/8 : COPY --from=build /app/target/demo-academico-0.0.1-SNAPSHOT.jar app.jar
+ ---> 96d3e8d1ad36
+Step 8/8 : ENTRYPOINT ["java", "-jar", "app.jar"]
+ ---> Running in d9a87a316a2f
+ ---> Removed intermediate container d9a87a316a2f
+ ---> c65f75343436
+Successfully built c65f75343436
+Successfully tagged spring-docker-multi:latest
+docker build -f Dockerfile.multi -t spring-docker-multi .  0.03s user 0.09s system 7% cpu 1.737 total
+
+# El build multi-stage tardó 1.7 s porque reutilizó la caché de capas del
+# enfoque 1 (misma imagen base, mismo COPY . ., mismo RUN mvn package).
+# Para que la comparación sea justa lo repito sin caché:
+$ docker build --no-cache -f Dockerfile.multi -t spring-docker-multi .
+[INFO] Total time:  49.131 s
+Successfully built 92635b5156ab
+docker build --no-cache -f Dockerfile.multi -t spring-docker-multi .  0.17s user 0.35s system 0% cpu 57.366 total
+
+########## 11. TAMAÑO DE LAS IMAGENES ##########
+$ docker images
+REPOSITORY             TAG                      IMAGE ID       SIZE
+spring-docker-multi    latest                   92635b5156ab   661MB
+spring-docker-good     latest                   620ca614c8e9   661MB
+spring-docker-bad      latest                   31a0f0aa52bd   1.24GB
+eclipse-temurin        21-jdk                   f9bf7e9fe2f9   762MB
+maven                  3.9-eclipse-temurin-21   99e61abcff91   847MB
+eclipse-temurin        21-jdk-alpine            0bfc69a4758a   556MB
+
+########## EJECUCION DE LOS TRES CONTENEDORES ##########
+$ docker run -d --rm -p 8081:8080 --name prueba spring-docker-bad
+  curl http://localhost:8081/hola -> HTTP 200  "Hola desde Spring Boot con Docker"
+$ docker run -d --rm -p 8081:8080 --name prueba spring-docker-good
+  curl http://localhost:8081/hola -> HTTP 200  "Hola desde Spring Boot con Docker"
+$ docker run -d --rm -p 8081:8080 --name prueba spring-docker-multi
+  curl http://localhost:8081/hola -> HTTP 200  "Hola desde Spring Boot con Docker"
+
+$ docker images | grep spring-docker   (resumen)
+spring-docker-multi  661MB
+spring-docker-good  661MB
+spring-docker-bad  1.24GB
+
+########## QUE QUEDA DENTRO DE CADA IMAGEN ##########
+--- spring-docker-bad ---
+$ docker run --rm spring-docker-bad sh -c 'which mvn java; ls /app; du -sh /root/.m2 2>/dev/null'
+  mvn:  /usr/bin/mvn
+  java: /opt/java/openjdk/bin/java
+  /app contiene:
+    Dockerfile.bad
+    Dockerfile.good
+    Dockerfile.multi
+    pom.xml
+    src
+    target
+  repositorio Maven (~/.m2): 99M
+
+--- spring-docker-good ---
+  mvn:  NO
+  java: /opt/java/openjdk/bin/java
+  /app contiene:
+    app.jar
+  repositorio Maven (~/.m2): 
+
+--- spring-docker-multi ---
+  mvn:  NO
+  java: /opt/java/openjdk/bin/java
+  /app contiene:
+    app.jar
+  repositorio Maven (~/.m2): 
+
+$ docker history spring-docker-bad   (de dónde viene el peso)
+SIZE      CREATED BY
+0B        /bin/sh -c #(nop)  CMD ["java" "-jar" "targe…
+160MB     /bin/sh -c mvn clean package -DskipTests
+55.9MB    /bin/sh -c #(nop) COPY dir:6d6a370195cd2467b…
+8.19kB    /bin/sh -c #(nop) WORKDIR /app
+0B        CMD ["mvn"]
+
+########## 12. PERSISTENCIA CON VOLUMENES ##########
+$ docker volume create datos-spring-lab
+datos-spring-lab
+$ docker run --rm -v datos-spring-lab:/datos alpine sh -c "echo 'Persistencia Spring Boot' > /datos/info.txt"
+  (el contenedor que escribió el archivo ya fue eliminado por --rm)
+$ docker run --rm -v datos-spring-lab:/datos alpine cat /datos/info.txt
+Persistencia Spring Boot
+  -> otro contenedor distinto del que escribió, y el archivo sigue ahí
+
+$ Prueba de contraste: lo mismo SIN volumen
+sin volumen
+$ docker run --rm alpine cat /datos.txt
+cat: can't open '/datos.txt': No such file or directory
+  -> sin volumen el archivo murió con el contenedor
+
+$ docker volume ls | grep datos-spring-lab
+local     datos-spring-lab
+
+########## 13. COMUNICACION ENTRE CONTENEDORES CON REDES ##########
+$ docker network create red-spring-lab
+7ab8cb2ee9f2945f63a3a304454da75adc15bfb9fc8fd19b9609e64980829078
+$ docker run -d --name db-lab --network red-spring-lab -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=demo mysql:8.0
+80f1ebcc603aa0b18593f5572cfade5eaef1b707f50a5ae5b132f1488549fc58
+$ docker ps --filter name=db-lab
+NAMES     IMAGE       STATUS          PORTS
+db-lab    mysql:8.0   Up 20 seconds   3306/tcp, 33060/tcp
+
+$ docker run --rm --network red-spring-lab alpine sh -c 'ping -c 2 db-lab'
+PING db-lab (172.24.0.2): 56 data bytes
+64 bytes from 172.24.0.2: seq=0 ttl=64 time=0.375 ms
+64 bytes from 172.24.0.2: seq=1 ttl=64 time=0.155 ms
+
+--- db-lab ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 0.155/0.265/0.375 ms
+
+--- contraste: el MISMO ping desde FUERA de la red ---
+$ docker run --rm alpine sh -c 'ping -c 1 db-lab'
+ping: bad address 'db-lab'
+  -> fuera de la red, el nombre db-lab no resuelve
+
+--- conectividad real al puerto de MySQL por nombre de servicio ---
+$ docker run --rm --network red-spring-lab mysql:8.0 mysql -h db-lab -uroot -p123456 -e 'SHOW DATABASES;'
+Database
+demo
+information_schema
+mysql
+performance_schema
+sys
+  -> db-lab no publica ningún puerto al host (docker ps no muestra 0.0.0.0:...)
+     y aun así es alcanzable desde otro contenedor de la misma red.
+
+########## LIMPIEZA ##########
+$ docker rm -f db-lab
+$ docker network rm red-spring-lab
+$ docker volume rm datos-spring-lab
+$ docker rmi spring-docker-bad spring-docker-good spring-docker-multi
+
+$ docker ps  (queda solo lo que ya estaba antes del laboratorio)
+dinkgo-postgres
+jupyterhub
+mi-backend-api
+nbexchange
+postgres-db
