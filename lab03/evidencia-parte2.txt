@@ -1,0 +1,136 @@
+===== ESTRUCTURA POR MODULOS =====
+co.edu.demoacademico
+co.edu.demoacademico.api
+co.edu.demoacademico.asignaturas
+co.edu.demoacademico.asignaturas.controller
+co.edu.demoacademico.asignaturas.dto
+co.edu.demoacademico.asignaturas.handler
+co.edu.demoacademico.asignaturas.model
+co.edu.demoacademico.asignaturas.repository
+co.edu.demoacademico.asignaturas.service
+co.edu.demoacademico.common
+co.edu.demoacademico.common.api
+co.edu.demoacademico.common.controller
+co.edu.demoacademico.common.exception
+co.edu.demoacademico.config
+co.edu.demoacademico.controller
+co.edu.demoacademico.dto
+co.edu.demoacademico.estudiantes
+co.edu.demoacademico.estudiantes.controller
+co.edu.demoacademico.estudiantes.dto
+co.edu.demoacademico.estudiantes.handler
+co.edu.demoacademico.estudiantes.model
+co.edu.demoacademico.estudiantes.port
+co.edu.demoacademico.estudiantes.repository
+co.edu.demoacademico.estudiantes.service
+co.edu.demoacademico.exception
+co.edu.demoacademico.grupos
+co.edu.demoacademico.grupos.controller
+co.edu.demoacademico.grupos.dto
+co.edu.demoacademico.grupos.handler
+co.edu.demoacademico.grupos.model
+co.edu.demoacademico.grupos.port
+co.edu.demoacademico.grupos.repository
+co.edu.demoacademico.grupos.service
+co.edu.demoacademico.handler
+co.edu.demoacademico.matriculas
+co.edu.demoacademico.matriculas.controller
+co.edu.demoacademico.matriculas.dto
+co.edu.demoacademico.matriculas.handler
+co.edu.demoacademico.matriculas.model
+co.edu.demoacademico.matriculas.repository
+co.edu.demoacademico.matriculas.service
+co.edu.demoacademico.model
+co.edu.demoacademico.programas
+co.edu.demoacademico.programas.controller
+co.edu.demoacademico.programas.dto
+co.edu.demoacademico.programas.handler
+co.edu.demoacademico.programas.model
+co.edu.demoacademico.programas.repository
+co.edu.demoacademico.programas.service
+co.edu.demoacademico.repository
+co.edu.demoacademico.service
+
+===== VERIFICACION ARQUITECTONICA (paso B7) =====
+Regla: matriculas no depende de repositorios ajenos, solo de Ports
+
+  OK     matriculas NO importa estudiantes.repository
+  OK     matriculas NO importa grupos.repository
+  OK     matriculas SÍ importa EstudianteQueryPort
+  OK     matriculas SÍ importa GrupoQueryPort
+
+Resultado: se cumple la regla arquitectónica.
+
+===== IMPORTS REALES DE MatriculaServiceImpl =====
+import co.edu.demoacademico.common.exception.BusinessException;
+import co.edu.demoacademico.estudiantes.model.Estudiante;
+import co.edu.demoacademico.estudiantes.port.EstudianteQueryPort;
+import co.edu.demoacademico.grupos.model.Grupo;
+import co.edu.demoacademico.grupos.port.GrupoQueryPort;
+import co.edu.demoacademico.matriculas.model.Matricula;
+import co.edu.demoacademico.matriculas.repository.MatriculaRepository;
+
+===== GUION DE PRUEBAS REPETIDO TRAS EL REFACTOR =====
+Esperando a que terminen los seeders...
+  seeders listos: 3 programas, 20 grupos
+
+===== 1) POST /api/programas =====
+{"success":true,"message":"Programa creado","data":{"id":4,"codigo":"PROG-ING","nombre":"Ingeniería de Software"},"timestamp":"2026-10-14T19:51:40.590523Z"}
+HTTP 201
+
+===== 2) POST /api/asignaturas (con programaId) =====
+{"success":true,"message":"Asignatura creada","data":{"id":11,"codigo":"ASIG-IS3","nombre":"Ingeniería de Software III","creditos":3,"programaId":4,"programaNombre":"Ingeniería de Software"},"timestamp":"2026-10-14T19:51:40.642650Z"}
+HTTP 201
+
+===== 3) POST /api/grupos (asignaturaId, cupoMax=2) =====
+{"success":true,"message":"Grupo creado","data":{"id":21,"codigoGrupo":"G-IS3-01","cupoMax":2,"asignaturaId":11,"asignaturaNombre":"Ingeniería de Software III"},"timestamp":"2026-10-14T19:51:40.689979Z"}
+HTTP 201
+
+===== 4) POST /api/estudiantes (tres estudiantes) =====
+{"success":true,"message":"Estudiante creado","data":{"id":51,"nombre":"Estudiante Lab03 1","email":"lab03.est1@demo.com"},"timestamp":"2026-10-14T19:51:40.740586Z"}
+HTTP 201
+{"success":true,"message":"Estudiante creado","data":{"id":52,"nombre":"Estudiante Lab03 2","email":"lab03.est2@demo.com"},"timestamp":"2026-10-14T19:51:40.755044Z"}
+HTTP 201
+{"success":true,"message":"Estudiante creado","data":{"id":53,"nombre":"Estudiante Lab03 3","email":"lab03.est3@demo.com"},"timestamp":"2026-10-14T19:51:40.768585Z"}
+HTTP 201
+
+===== 5) POST /api/matriculas  — matrícula 1 (debe pasar) =====
+{"success":true,"message":"Matrícula registrada","data":{"id":1,"estudianteId":51,"estudianteNombre":"Estudiante Lab03 1","grupoId":21,"codigoGrupo":"G-IS3-01","fechaRegistro":"2026-10-14T19:51:40.818610Z"},"timestamp":"2026-10-14T19:51:40.823206Z"}
+HTTP 201
+
+===== 6) POST /api/matriculas  — matrícula 2 (debe pasar, llena el cupo) =====
+{"success":true,"message":"Matrícula registrada","data":{"id":2,"estudianteId":52,"estudianteNombre":"Estudiante Lab03 2","grupoId":21,"codigoGrupo":"G-IS3-01","fechaRegistro":"2026-10-14T19:51:40.838322Z"},"timestamp":"2026-10-14T19:51:40.838998Z"}
+HTTP 201
+
+===== 7) POST /api/matriculas  — matrícula 3 (debe FALLAR por cupo) =====
+{"success":false,"message":"El grupo no tiene cupo disponible","data":null,"timestamp":"2026-10-14T19:51:40.855395Z"}
+HTTP 400
+
+===== 8) POST /api/matriculas  — duplicada (debe FALLAR por duplicado) =====
+{"success":false,"message":"El estudiante ya está matriculado en ese grupo","data":null,"timestamp":"2026-10-14T19:51:40.870445Z"}
+HTTP 400
+
+===== 9) POST /api/matriculas  — estudiante inexistente (404) =====
+{"success":false,"message":"Estudiante no encontrado: 999999","data":null,"timestamp":"2026-10-14T19:51:40.883309Z"}
+HTTP 404
+
+===== 10) POST /api/matriculas  — grupo inexistente (404) =====
+{"success":false,"message":"Grupo no encontrado: 999999","data":null,"timestamp":"2026-10-14T19:51:40.896405Z"}
+HTTP 404
+
+===== CONTEOS TRAS EL SEEDER + EL GUION (paso A8) =====
+  programa     4
+  asignatura   11
+  grupo        21
+  estudiante   53
+  (matricula   2  — las dos que cupieron en G-IS3-01)
+
+===== CONSTRAINTS QUE CREÓ HIBERNATE =====
+add constraint UKtbc5806vbo6w5mcbmkqom1m0n unique (email)
+add constraint uk_grupo_codigo unique (codigo_grupo)
+add constraint uk_matricula_estudiante_grupo unique (estudiante_id, grupo_id)
+add constraint uk_programa_codigo unique (codigo)
+
+===== DIFF CONTRA LA EJECUCION DE LA PARTE 1 =====
+$ diff <(parte1) <(parte2)   # normalizando timestamps
+(sin diferencias: 56 lineas identicas)

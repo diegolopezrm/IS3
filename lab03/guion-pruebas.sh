@@ -15,6 +15,25 @@ req() { # req <metodo> <ruta> [body]
   fi
 }
 
+# Spring abre el puerto HTTP antes de que terminen los CommandLineRunner, así que
+# hay que esperar a que los seeders acaben; si no, el guion corre contra una base
+# a medio sembrar y los ids no son reproducibles.
+echo "Esperando a que terminen los seeders..."
+for i in $(seq 1 60); do
+  P=$(curl -sS "$BASE/api/programas?page=0&size=1" 2>/dev/null | python3 -c "
+import sys,json
+try: print(json.load(sys.stdin)['data']['totalElements'])
+except Exception: print(0)")
+  G=$(curl -sS "$BASE/api/grupos?page=0&size=1" 2>/dev/null | python3 -c "
+import sys,json
+try: print(json.load(sys.stdin)['data']['totalElements'])
+except Exception: print(0)")
+  [ "$P" -ge 3 ] && [ "$G" -ge 20 ] && break
+  sleep 1
+done
+echo "  seeders listos: $P programas, $G grupos"
+echo
+
 echo "===== 1) POST /api/programas ====="
 req POST /api/programas '{"codigo":"PROG-ING","nombre":"Ingeniería de Software"}'
 

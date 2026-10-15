@@ -1,0 +1,56 @@
+===== 1) POST /api/programas =====
+{"success":true,"message":"Programa creado","data":{"id":4,"codigo":"PROG-ING","nombre":"Ingeniería de Software"},"timestamp":"2026-10-14T19:47:15.545192Z"}
+HTTP 201
+
+===== 2) POST /api/asignaturas (con programaId) =====
+{"success":true,"message":"Asignatura creada","data":{"id":11,"codigo":"ASIG-IS3","nombre":"Ingeniería de Software III","creditos":3,"programaId":4,"programaNombre":"Ingeniería de Software"},"timestamp":"2026-10-14T19:47:15.601333Z"}
+HTTP 201
+
+===== 3) POST /api/grupos (asignaturaId, cupoMax=2) =====
+{"success":true,"message":"Grupo creado","data":{"id":21,"codigoGrupo":"G-IS3-01","cupoMax":2,"asignaturaId":11,"asignaturaNombre":"Ingeniería de Software III"},"timestamp":"2026-10-14T19:47:15.649724Z"}
+HTTP 201
+
+===== 4) POST /api/estudiantes (tres estudiantes) =====
+{"success":true,"message":"Estudiante creado","data":{"id":51,"nombre":"Estudiante Lab03 1","email":"lab03.est1@demo.com"},"timestamp":"2026-10-14T19:47:15.702068Z"}
+HTTP 201
+{"success":true,"message":"Estudiante creado","data":{"id":52,"nombre":"Estudiante Lab03 2","email":"lab03.est2@demo.com"},"timestamp":"2026-10-14T19:47:15.716110Z"}
+HTTP 201
+{"success":true,"message":"Estudiante creado","data":{"id":53,"nombre":"Estudiante Lab03 3","email":"lab03.est3@demo.com"},"timestamp":"2026-10-14T19:47:15.729911Z"}
+HTTP 201
+
+===== 5) POST /api/matriculas  — matrícula 1 (debe pasar) =====
+{"success":true,"message":"Matrícula registrada","data":{"id":1,"estudianteId":51,"estudianteNombre":"Estudiante Lab03 1","grupoId":21,"codigoGrupo":"G-IS3-01","fechaRegistro":"2026-10-14T19:47:15.781536Z"},"timestamp":"2026-10-14T19:47:15.786945Z"}
+HTTP 201
+
+===== 6) POST /api/matriculas  — matrícula 2 (debe pasar, llena el cupo) =====
+{"success":true,"message":"Matrícula registrada","data":{"id":2,"estudianteId":52,"estudianteNombre":"Estudiante Lab03 2","grupoId":21,"codigoGrupo":"G-IS3-01","fechaRegistro":"2026-10-14T19:47:15.802478Z"},"timestamp":"2026-10-14T19:47:15.803186Z"}
+HTTP 201
+
+===== 7) POST /api/matriculas  — matrícula 3 (debe FALLAR por cupo) =====
+{"success":false,"message":"El grupo no tiene cupo disponible","data":null,"timestamp":"2026-10-14T19:47:15.818656Z"}
+HTTP 400
+
+===== 8) POST /api/matriculas  — duplicada (debe FALLAR por duplicado) =====
+{"success":false,"message":"El estudiante ya está matriculado en ese grupo","data":null,"timestamp":"2026-10-14T19:47:15.833276Z"}
+HTTP 400
+
+===== 9) POST /api/matriculas  — estudiante inexistente (404) =====
+{"success":false,"message":"Estudiante no encontrado: 999999","data":null,"timestamp":"2026-10-14T19:47:15.845681Z"}
+HTTP 404
+
+===== 10) POST /api/matriculas  — grupo inexistente (404) =====
+{"success":false,"message":"Grupo no encontrado: 999999","data":null,"timestamp":"2026-10-14T19:47:15.856956Z"}
+HTTP 404
+
+===== CONTEOS TRAS EL SEEDER + EL GUION (paso A8) =====
+  programa     4
+  asignatura   11
+  grupo        21
+  estudiante   53
+  (matricula   2  — las dos que cupieron en G-IS3-01)
+
+===== CONSTRAINTS QUE CREÓ HIBERNATE =====
+add constraint UKtbc5806vbo6w5mcbmkqom1m0n unique (email)
+add constraint uk_grupo_codigo unique (codigo_grupo)
+add constraint uk_matricula_estudiante_grupo unique (estudiante_id, grupo_id)
+add constraint uk_programa_codigo unique (codigo)
