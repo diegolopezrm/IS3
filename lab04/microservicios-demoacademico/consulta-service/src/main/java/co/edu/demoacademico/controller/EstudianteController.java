@@ -6,6 +6,7 @@ import co.edu.demoacademico.dto.EstudianteCreateDTO;
 import co.edu.demoacademico.dto.EstudianteDTO;
 import co.edu.demoacademico.dto.EstudianteUpdateDTO;
 import co.edu.demoacademico.handler.EstudianteHandler;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/estudiantes")
+@SecurityRequirement(name = "bearerAuth")
 public class EstudianteController {
 
     private final EstudianteHandler handler;
