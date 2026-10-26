@@ -10,6 +10,7 @@ IS3/
 ├── lab02/     # Lab 02 Opción A — DTOs + ApiResponse + Handler
 ├── lab02-b/   # Lab 02 Opción B — Entity directo + excepciones propias
 ├── lab03/     # Lab 03 — Sistema Académico + refactor por módulos con Ports
+├── lab04/     # Lab 04 — microservicios con JWT, OpenFeign, filtro de seguridad y Docker
 ├── clase02/   # Trabajo en Clase 02 — informe comparativo de 12 arquitecturas
 ├── clase03/   # Trabajo en Clase 03 — Docker y Docker Compose con MySQL
 └── clase04/   # Trabajo en Clase 04 — multi-stage, volúmenes y redes
@@ -42,6 +43,19 @@ cd clase03 && mvn clean package && docker compose up -d
 cd clase04 && mvn clean package && docker build -f Dockerfile.multi -t spring-docker-multi .
 ```
 
+El Lab 04 son dos microservicios; hay que empaquetar antes de construir las
+imágenes porque los Dockerfiles solo copian el jar:
+
+```bash
+cd lab04/microservicios-demoacademico
+(cd auth-service && mvn clean package -DskipTests)
+(cd consulta-service && mvn clean package -DskipTests)
+docker compose up -d --build
+```
+
+- auth-service: http://localhost:8081/swagger-ui.html
+- consulta-service: http://localhost:8082/swagger-ui.html (requiere JWT)
+
 ## Informes
 
 | Trabajo | Informe |
@@ -49,6 +63,7 @@ cd clase04 && mvn clean package && docker build -f Dockerfile.multi -t spring-do
 | Lab 01 | [INFORME-LAB01.md](INFORME-LAB01.md) · [PDF](INFORME-LAB01.pdf) |
 | Lab 02 | [INFORME.md](INFORME.md) · [PDF](INFORME.pdf) |
 | Lab 03 | [lab03/INFORME-LAB03.md](lab03/INFORME-LAB03.md) · [PDF](lab03/INFORME-LAB03.pdf) · [README](lab03/README.md) |
+| Lab 04 | [lab04/INFORME-LAB04.md](lab04/INFORME-LAB04.md) · [PDF](lab04/INFORME-LAB04.pdf) · [README](lab04/microservicios-demoacademico/README.md) |
 | Clase 02 | [clase02/INFORME-CLASE02.md](clase02/INFORME-CLASE02.md) · [PDF](clase02/INFORME-CLASE02.pdf) |
 | Clase 03 | [clase03/INFORME-CLASE03.md](clase03/INFORME-CLASE03.md) · [PDF](clase03/INFORME-CLASE03.pdf) |
 | Clase 04 | [clase04/INFORME-CLASE04.md](clase04/INFORME-CLASE04.md) · [PDF](clase04/INFORME-CLASE04.pdf) |
