@@ -1,0 +1,13 @@
+
+########## PARTE 3 — OPENFEIGN ##########
+2026-10-26T12:14:20.530-05:00  INFO 40575 --- [           main] c.e.d.DemoAcademicoApplication           : Started DemoAcademicoApplication in 3.612 seconds (process running for 3.976)
+
+$ Bean del cliente Feign registrado en el contexto:
+  2026-10-26T12:14:17.874-05:00 DEBUG 40575 --- [           main] o.s.c.openfeign.FeignClientsRegistrar$1  : Identified candidate 
+
+$ auth-service alcanzable en services.auth.url (http://localhost:8081):
+  GET /auth/validate -> HTTP 200
+
+  El filtro que realmente invoca este cliente se construye en la Parte 4;
+  por ahora Spring Security sigue bloqueando todo consulta-service:
+  GET /api/estudiantes -> HTTP 401

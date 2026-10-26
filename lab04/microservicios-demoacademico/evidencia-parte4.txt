@@ -1,0 +1,72 @@
+########## PARTE 4 — GUION DE PRUEBAS (seccion 10.4) ##########
+  auth-service    http://localhost:8081   consulta-service  http://localhost:8082
+
+===== 1) Login exitoso — POST /auth/login  admin / Admin2026* =====
+{"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MzAzNjI5MSwiZXhwIjoxNzkzMDM5ODkxfQ.YU1HkDrZ9TqcbWdRhyvSAFWGGaG2BWc1WXXmlSzUuns","type":"Bearer"}
+  HTTP 200
+
+===== 2) Login fallido — contraseña incorrecta =====
+Credenciales inválidas
+  HTTP 401
+
+===== 3) Validar token manualmente — GET /auth/validate =====
+{"valid":true,"role":"ADMIN","username":"admin"}
+  HTTP 200
+
+===== 4) GET /api/estudiantes CON token válido =====
+{"success":true,"message":"OK","data":{"content":[{"id":1,"nombre":"Eduardo","apellido":"Hinojosa","email":"estudiante0@demoacademico.edu","edad":18},{"id":2,"nombre":"Gabriela","apellido":"Pantoja","email":"estudiante1@demoacademico.edu","edad":19}],"pageable":{"pageNumber":0,"pageSize":2,"sort":[],"offset":0,"paged":true,"unpaged":false},"totalPages":250,"totalElements":500,"last":false,"numberOfElements":2,"first":true,"size":2,"number":0,"sor
+
+===== 5) GET /api/estudiantes SIN autorizar =====
+Token no enviado o formato inválido
+  HTTP 401
+
+===== 6) GET /api/estudiantes con token INVÁLIDO =====
+Token inválido o expirado
+  HTTP 401
+
+===== VERIFICACIONES ADICIONALES =====
+$ securitySchemes en /v3/api-docs (lo que dibuja el botón Authorize)
+   {"bearerAuth": {"type": "http", "name": "bearerAuth", "scheme": "bearer", "bearerFormat": "JWT"}}
+   security global: [{"bearerAuth": []}]
+
+$ Token SIN el prefijo 'Bearer' en el header (como lo manda Swagger tras Authorize)
+  -> HTTP 200
+
+$ POST /api/estudiantes SIN token (el enunciado lo excluye del filtro)
+{"success":true,"message":"Estudiante creado","data":{"id":501,"nombre":"Sin","apellido":"Token","email":"sin.token@demoacademico.edu","edad":25}}
+  HTTP 201
+
+$ Swagger y H2 siguen abiertos (shouldNotFilter)
+  swagger-ui  -> HTTP 200
+  h2-console  -> HTTP 302
+
+$ Llamada Feign real hacia auth-service registrada en su log:
+  peticiones a /auth/validate recibidas por auth-service: 0
+
+$ QUÉ PASA SI auth-service SE CAE (el catch de TokenValidationService)
+  (auth-service detenido)
+curl: (7) Failed to connect to localhost port 8082 after 0 ms: Couldn't connect to server
+
+  -> HTTP 000
+  El token es válido, pero sin auth-service no se puede confirmar,
+  así que el filtro lo rechaza. Es la decisión segura: ante la duda, denegar.
+
+===== PRUEBA DE QUE consulta-service LLAMA DE VERDAD A auth-service =====
+$ Login como docente y dos consultas a consulta-service (una buena, una mala).
+$ Access log de auth-service:
+  GET /swagger-ui/index.html -> 200
+  POST /auth/login -> 200
+  GET /auth/validate?token=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiRE9DRU5URSIsInN1YiI6ImRvY2VudGUiLCJpYXQiOjE3OTMwMzY0MDQsImV4cCI6MTc5MzA0MDAwNH0.ZL7TTeP8lQpHThUtfg59mxJHw3MTi4D49VabgnaMBXQ -> 200
+  GET /auth/validate?token=basura -> 401
+  Las lineas GET /auth/validate las origino consulta-service via Feign,
+  no yo: desde fuera solo llame a /auth/login y a /api/estudiantes.
+
+===== QUÉ PASA SI auth-service SE CAE =====
+  (auth-service detenido; consulta-service sigue arriba)
+  consulta-service vivo -> HTTP 200 en swagger
+$ GET /api/estudiantes con el MISMO token válido de antes:
+Token inválido o expirado
+  -> HTTP 401
+  El token sigue siendo válido, pero sin auth-service no hay forma de
+  confirmarlo. El catch de TokenValidationService devuelve false y el
+  filtro deniega. Ante la duda, denegar.

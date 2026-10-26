@@ -1,0 +1,15 @@
+
+########## PARTE 1 — CONSULTA-SERVICE ##########
+2026-10-26T12:09:46.991-05:00  INFO 27119 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8082 (http) with context path ''
+2026-10-26T12:09:47.013-05:00  INFO 27119 --- [           main] c.e.d.DemoAcademicoApplication           : Started DemoAcademicoApplication in 3.733 seconds (process running for 4.445)
+
+# Efecto de agregar spring-boot-starter-security sin configurarlo todavía:
+  Using generated security password: 6efee67f-7e97-4b72-8600-ba58992e4a5d
+
+$ GET /api/estudiantes   (sin credenciales)
+  -> HTTP 401
+$ GET /swagger-ui/index.html
+  -> HTTP 401
+
+  Spring Security protege todo por defecto con HTTP Basic. En la Parte 4
+  se reemplaza por el filtro que valida el JWT contra auth-service.

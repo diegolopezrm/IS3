@@ -1,0 +1,64 @@
+########## PARTE 5 — DOCKER Y COMPOSE ##########
+$ docker compose build
+Successfully tagged microservicios-demoacademico-auth-service:latest
+Successfully tagged microservicios-demoacademico-consulta-service:latest
+
+$ docker compose up -d
+ Network microservicios-demoacademico_micro-net Creating 
+ Network microservicios-demoacademico_micro-net Created 
+ Container auth-service Created 
+ Container consulta-service Created 
+ Container auth-service Started 
+ Container consulta-service Started 
+
+$ docker compose ps
+time="2026-10-26T12:41:32-05:00" level=warning msg="/Users/diegolopez/Documents/UIS/IS3/lab04/microservicios-demoacademico/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+NAME               IMAGE                                           STATUS          PORTS
+auth-service       microservicios-demoacademico-auth-service       Up 20 seconds   0.0.0.0:8081->8081/tcp, [::]:8081->8081/tcp
+consulta-service   microservicios-demoacademico-consulta-service   Up 20 seconds   0.0.0.0:8082->8082/tcp, [::]:8082->8082/tcp
+
+$ docker images | grep microservicios
+microservicios-demoacademico-consulta-service  886MB
+microservicios-demoacademico-auth-service  864MB
+
+$ La variable de entorno llegó al contenedor:
+  SERVICES_AUTH_URL=http://auth-service:8081
+
+===== GUION DE 6 PRUEBAS, AHORA CONTRA LOS CONTENEDORES =====
+--- 1) Login exitoso ---
+  {"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiRVNUVURJQU5URSIsInN1YiI6ImVzdHVkaWFudGUxIiwiaWF...
+  HTTP 200
+--- 2) Login fallido ---
+  -> HTTP 401
+--- 3) Validar token ---
+  {"valid":true,"role":"ESTUDIANTE","username":"estudiante1"}
+  HTTP 200
+--- 4) GET /api/estudiantes CON token ---
+{"success":true,"message":"OK","data":{"content":[{"id":1,"nombre":"Isabel","apellido":"Yáñez","email":"estudiante0@demoacademico.edu","edad":18}],"pageable":{"pageNumber":0,"pageSize":1,"sort":[],"offset":0,"paged":true,"unpaged":false},"last":false,"totalP
+--- 5) GET /api/estudiantes SIN token ---
+  Token no enviado o formato inválido
+  HTTP 401
+--- 6) GET /api/estudiantes con token inválido ---
+  Token inválido o expirado
+  HTTP 401
+
+$ Prueba de red: consulta-service resuelve a auth-service por nombre
+  172.24.0.2      auth-service
+
+$ Aviso de Docker sobre el compose:
+  time="2026-10-26T12:41:48-05:00" level=warning msg="/Users/diegolopez/Documents/UIS/IS3/lab04/microservicios-demoacademico/docker-compose.yml: the a
+  El enunciado pide version: '3.9', pero Compose v2 ya ignora ese atributo.
+  Lo dejo como lo pide el enunciado; no afecta el funcionamiento.
+
+$ docker compose down
+   Container consulta-service Removed 
+   Container auth-service Removed 
+   Network microservicios-demoacademico_micro-net Removed 
+  (imágenes del laboratorio eliminadas)
+
+$ docker ps  (solo queda lo que ya estaba corriendo antes)
+  dinkgo-postgres
+  jupyterhub
+  mi-backend-api
+  nbexchange
+  postgres-db

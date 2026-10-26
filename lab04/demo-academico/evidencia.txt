@@ -1,0 +1,25 @@
+########## PARTE 0 — PROYECTO BASE ##########
+$ mvn clean package -DskipTests   ->  demo-academico-0.0.1-SNAPSHOT.jar (52M)
+2026-10-26T12:08:47.379-05:00  INFO 25990 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path ''
+2026-10-26T12:08:47.397-05:00  INFO 25990 --- [           main] c.e.d.DemoAcademicoApplication           : Started DemoAcademicoApplication in 1.963 seconds (process running for 2.269)
+
+$ curl http://localhost:8085/swagger-ui/index.html
+  swagger-ui   -> HTTP 200
+  h2-console   -> HTTP 302
+  v3/api-docs  -> HTTP 200
+
+$ GET /api/estudiantes?page=0&size=2   (seeder: 500 estudiantes)
+{"success":true,"message":"OK","data":{"content":[{"id":1,"nombre":"Sergio","apellido":"Valladares","email":"estudiante0@demoacademico.edu","edad":18},{"id":2,"nombre":"Diego","apellido":"Coronado","email":"estudiante1@demoacademico.edu","edad":19}],"pageable":{"pageNumber":0,"pageSize":2,"sort":{"sorted":false,"unsorted":true,"empty":true},"offset":0,"paged":true,"unpaged":false},"totalPages":250,"last":false,"totalElements":500,"first":true,"numberOfElements":2,"size":2,"number":0,"sort":{"sorted":false,"unsorted
+
+$ POST /api/estudiantes   (alta válida)
+{"success":true,"message":"Estudiante creado","data":{"id":501,"nombre":"Ana","apellido":"Perez","email":"ana.perez@demoacademico.edu","edad":22}}
+  HTTP 201
+$ POST con el mismo email   (regla de negocio)
+{"success":false,"message":"Ya existe un estudiante con el email: ana.perez@demoacademico.edu","data":null}
+  HTTP 400
+$ POST con email inválido y edad 0   (validación)
+{"success":false,"message":"Error de validación","data":{"email":"El email no es válido","edad":"La edad mínima es 1"}}
+  HTTP 400
+$ GET /api/estudiantes/999999   (no encontrado)
+{"success":false,"message":"Estudiante no encontrado: 999999","data":null}
+  HTTP 404

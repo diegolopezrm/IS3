@@ -1,0 +1,53 @@
+
+########## PARTE 2 — AUTH-SERVICE ##########
+2026-10-26T12:11:33.460-05:00  INFO 28778 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path ''
+2026-10-26T12:11:33.480-05:00  INFO 28778 --- [           main] c.e.authservice.AuthServiceApplication   : Started AuthServiceApplication in 2.186 seconds (process running for 2.574)
+
+$ Hash guardado en H2 (no la contraseña en claro)
+
+$ POST /auth/login   admin / Admin2026*
+{"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MzAzNDc1NCwiZXhwIjoxNzkzMDM4MzU0fQ.5x39QEgB3ZvzCFCF2eTT8P9nvHVb3g2_aeNrBxothF4","type":"Bearer"}
+  HTTP 200
+
+$ Partes del JWT (header.payload.firma, decodificadas):
+  header   {"alg": "HS256"}
+  payload  {"role": "ADMIN", "sub": "admin", "iat": 1793034754, "exp": 1793038354}
+  firma    5x39QEgB3ZvzCFCF2eTT8P9n... (43 chars)
+
+$ POST /auth/login   admin / contraseña incorrecta
+Credenciales inválidas
+  HTTP 401
+$ POST /auth/login   usuario inexistente
+Credenciales inválidas
+  HTTP 401
+$ POST /auth/login   sin username (validación)
+
+  HTTP 401
+
+$ GET /auth/validate?token=<token válido>
+{"valid":true,"role":"ADMIN","username":"admin"}
+  HTTP 200
+$ GET /auth/validate con prefijo 'Bearer ' (TokenUtils lo normaliza)
+{"valid":true,"role":"ADMIN","username":"admin"}
+  HTTP 200
+$ GET /auth/validate?token=token-basura
+{"valid":false,"message":"Token inválido o expirado"}
+  HTTP 401
+
+$ Swagger de auth-service
+  swagger-ui -> HTTP 200
+
+$ Hashes BCrypt realmente guardados en H2 (log con bind=TRACE)
+   1  $2a$10$qCoV64dkZl.mCE/Vb.WMNOah6wU1bzxG8mySa07eF0Sq7eYXWlLkq
+   2  $2a$10$sY9DFIonoYU3bfzW55myjO8Ya8I1afeDtwvK3BateKeknUkUOmzI6
+   3  $2a$10$Taqeq2PI0vw7uVg84YqFdefK4W1pUimVEiUQOxvf0k.AeImaGL6.2
+  60 caracteres, prefijo $2a$10$ (BCrypt, coste 10), distintos entre sí por el salt.
+
+$ HALLAZGO: la validación devuelve 401 en vez de 400
+  POST /auth/login con username vacío  -> HTTP 401 (cuerpo vacío)
+  GET  /error                          -> HTTP 401
+  El log muestra que Spring SÍ resuelve la excepción de validación:
+2026-10-26T12:13:07.866-05:00  WARN 38175 --- [nio-8081-exec-2] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.web
+  pero el reenvío a /error lo bloquea anyRequest().authenticated(),
+  porque /error no está en la lista permitAll del SecurityConfig.
+  Arreglo de una línea: agregar "/error" a los requestMatchers permitAll.
