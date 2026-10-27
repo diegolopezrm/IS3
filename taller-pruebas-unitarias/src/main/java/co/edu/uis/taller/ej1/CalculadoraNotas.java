@@ -40,6 +40,6 @@ public class CalculadoraNotas {
      * Indica si una nota es aprobatoria (mayor o igual a 3.0).
      */
     public boolean aprobo(double nota) {
-        return nota > NOTA_APROBATORIA;
+        return nota >= NOTA_APROBATORIA;
     }
 }

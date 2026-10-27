@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Ejercicio 1 - Primeras pruebas con el patrón AAA.
- * Sigue las instrucciones de la presentación paso a paso.
  */
 class CalculadoraNotasTest {
 
@@ -39,38 +38,111 @@ class CalculadoraNotasTest {
     }
 
     // ---------------------------------------------------------------
-    // PASO 3: Escribe una prueba que verifique que 4.5 es aprobatoria.
-    //         Nombre sugerido: notaCuatroPuntoCincoAprueba
+    // PASO 3: 4.5 es aprobatoria
     // ---------------------------------------------------------------
-    // TODO
+    @Test
+    @DisplayName("Una nota de 4.5 es aprobatoria")
+    void notaCuatroPuntoCincoAprueba() {
+        // Arrange
+        double nota = 4.5;
 
+        // Act
+        boolean resultado = calculadora.aprobo(nota);
 
-    // ---------------------------------------------------------------
-    // PASO 4: Escribe una prueba que verifique que 2.9 NO es aprobatoria.
-    //         Nombre sugerido: notaDosPuntoNueveReprueba
-    // ---------------------------------------------------------------
-    // TODO
-
-
-    // ---------------------------------------------------------------
-    // PASO 5: Prueba el VALOR LÍMITE: 3.0 debe ser aprobatoria.
-    //         Nombre sugerido: notaTresExactaAprueba
-    //         (¡Atención! Esta prueba va a descubrir algo...)
-    // ---------------------------------------------------------------
-    // TODO
-
+        // Assert
+        assertTrue(resultado, "4.5 está por encima de 3.0, debería aprobar");
+    }
 
     // ---------------------------------------------------------------
-    // PASO 7: Verifica que una lista vacía lanza IllegalArgumentException.
-    //         Usa assertThrows(...)
+    // PASO 4: 2.9 NO es aprobatoria
     // ---------------------------------------------------------------
-    // TODO
+    @Test
+    @DisplayName("Una nota de 2.9 no es aprobatoria")
+    void notaDosPuntoNueveReprueba() {
+        // Arrange
+        double nota = 2.9;
 
+        // Act
+        boolean resultado = calculadora.aprobo(nota);
+
+        // Assert
+        assertFalse(resultado, "2.9 está por debajo de 3.0, no debería aprobar");
+    }
 
     // ---------------------------------------------------------------
-    // PASO 8: Verifica que una nota de 5.5 lanza IllegalArgumentException
-    //         y que el mensaje contiene "fuera de rango".
+    // PASO 5: VALOR LÍMITE. Esta es la prueba que descubrió el bug:
+    // la regla dice "mayor o igual a 3.0", pero aprobo() usaba >.
     // ---------------------------------------------------------------
-    // TODO
+    @Test
+    @DisplayName("Valor límite: una nota de 3.0 exacta es aprobatoria")
+    void notaTresExactaAprueba() {
+        // Arrange
+        double nota = CalculadoraNotas.NOTA_APROBATORIA;
 
+        // Act
+        boolean resultado = calculadora.aprobo(nota);
+
+        // Assert
+        assertTrue(resultado, "3.0 es el límite inclusive: debe aprobar");
+    }
+
+    // Los dos vecinos del límite, para dejar documentado dónde está la frontera
+    @Test
+    @DisplayName("Valor límite: 2.99 reprueba y 3.01 aprueba")
+    void vecinosDelLimiteDeAprobacion() {
+        assertFalse(calculadora.aprobo(2.99), "2.99 está justo por debajo del límite");
+        assertTrue(calculadora.aprobo(3.01), "3.01 está justo por encima del límite");
+    }
+
+    // ---------------------------------------------------------------
+    // PASO 7: lista vacía lanza IllegalArgumentException
+    // ---------------------------------------------------------------
+    @Test
+    @DisplayName("El promedio de una lista vacía lanza IllegalArgumentException")
+    void promedioDeListaVaciaLanzaExcepcion() {
+        // Arrange
+        List<Double> vacia = List.of();
+
+        // Act + Assert
+        assertThrows(IllegalArgumentException.class, () -> calculadora.promedio(vacia));
+    }
+
+    @Test
+    @DisplayName("El promedio de una lista nula lanza IllegalArgumentException")
+    void promedioDeListaNulaLanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> calculadora.promedio(null));
+    }
+
+    // ---------------------------------------------------------------
+    // PASO 8: nota fuera de rango, excepción Y mensaje
+    // ---------------------------------------------------------------
+    @Test
+    @DisplayName("Una nota de 5.5 lanza excepción con mensaje 'fuera de rango'")
+    void notaMayorACincoLanzaExcepcionConMensaje() {
+        // Arrange
+        List<Double> notas = List.of(4.0, 5.5);
+
+        // Act
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> calculadora.promedio(notas)
+        );
+
+        // Assert
+        assertTrue(ex.getMessage().contains("fuera de rango"),
+                "El mensaje debería explicar que la nota está fuera de rango, pero fue: " + ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Una nota negativa también está fuera de rango")
+    void notaNegativaLanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class, () -> calculadora.promedio(List.of(-0.5)));
+    }
+
+    // Los extremos válidos SÍ deben aceptarse: 0.0 y 5.0 están dentro del rango
+    @Test
+    @DisplayName("Valores límite del rango: 0.0 y 5.0 son notas válidas")
+    void extremosDelRangoSonValidos() {
+        assertEquals(2.5, calculadora.promedio(List.of(0.0, 5.0)), 0.001);
+    }
 }
