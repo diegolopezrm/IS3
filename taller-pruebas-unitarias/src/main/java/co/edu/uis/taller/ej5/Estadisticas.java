@@ -16,7 +16,9 @@ public class Estadisticas {
     /** Devuelve el mayor valor del arreglo. */
     public int maximo(int[] datos) {
         validar(datos);
-        int max = 0;
+        // BUG 1 corregido: arrancaba en 0, que no está en los datos. Con todos
+        // los valores negativos nunca entraba al if y devolvía 0.
+        int max = datos[0];
         for (int dato : datos) {
             if (dato > max) {
                 max = dato;
@@ -48,7 +50,9 @@ public class Estadisticas {
         Arrays.sort(copia);
         int n = copia.length;
         if (n % 2 == 0) {
-            return (copia[n / 2 - 1] + copia[n / 2]) / 2;
+            // BUG 2 corregido: dividir dos int entre 2 descarta los decimales.
+            // Al dividir entre 2.0 el resultado se promueve a double.
+            return (copia[n / 2 - 1] + copia[n / 2]) / 2.0;
         }
         return copia[n / 2];
     }
@@ -59,7 +63,8 @@ public class Estadisticas {
             throw new IllegalArgumentException("Las notas no pueden ser nulas");
         }
         int aprobados = 0;
-        for (int i = 0; i < notas.length - 1; i++) {
+        // BUG 3 corregido: el -1 dejaba fuera la última nota (error de uno en uno).
+        for (int i = 0; i < notas.length; i++) {
             if (notas[i] >= 3.0) {
                 aprobados++;
             }
