@@ -1,0 +1,64 @@
+########## ACTIVIDAD 5 — DESPLEGAR Y ACTUALIZAR ##########
+--- PARTE A: etapas del build #5 ---
+    Pruebas                    SUCCESS   5 s
+    Construir imagen           SUCCESS   1 s
+    Smoke test                 SUCCESS   4 s
+    Desplegar                  SUCCESS   3 s
+    Declarative: Post Actions  SUCCESS   0 s
+
+--- consola: paso 5 ---
+  {"version":"1.0.0"}+ echo 
+  + echo Desplegada taller-app:5 en http://localhost:8000
+  Desplegada taller-app:5 en http://localhost:8000
+  Finished: SUCCESS
+
+--- paso 7: el contenedor desplegado dentro del dind ---
+taller-app  taller-app:5  Up 18 seconds  0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+
+--- paso 6: la app respondiendo desde el host (8001, remapeado del 8000) ---
+  http://localhost:8001/health            -> {"status":"ok"}
+  http://localhost:8001/version           -> {"version":"1.0.0"}
+  http://localhost:8001/sumar?a=7&b=8     -> {"resultado":15}
+
+--- PARTE B: actualizar a 2.0.0 ---
+  /version antes del push  -> {"version":"1.0.0"}
+  23:    public static final String VERSION = "2.0.0";
+  push hecho
+  build #6 -> SUCCESS
+  /version después del build -> {"version":"2.0.0"}
+contenedor en ejecución: taller-app:6
+
+--- PARTE C: una versión con pruebas rotas NO se despliega ---
+  VERSION -> 3.0.0  y  assertEquals(5,...) -> 6  (prueba rota a propósito)
+  push hecho
+  build #7 -> FAILURE
+  etapas:
+    Pruebas                    FAILED
+    Construir imagen           FAILED
+    Smoke test                 FAILED
+    Desplegar                  FAILED
+    Declarative: Post Actions  SUCCESS
+  /version sigue en        -> {"version":"2.0.0"}
+contenedor en ejecución: taller-app:6  (no cambió)
+  la consola confirma que las etapas siguientes ni se ejecutaron:
+    org.opentest4j.AssertionFailedError: expected: <6> but was: <5>
+    [ERROR]   CalculadoraTest.sumaDosNumeros:11 expected: <6> but was: <5>
+    [ERROR] Tests run: 6, Failures: 1, Errors: 0, Skipped: 0
+    Stage "Construir imagen" skipped due to earlier failure(s)
+    Stage "Smoke test" skipped due to earlier failure(s)
+
+--- corrijo la prueba y vuelvo a subir ---
+  push hecho
+  build #8 -> SUCCESS
+  /version ahora -> {"version":"3.0.0"}
+contenedor: taller-app:8
+
+--- resumen de los 8 builds de actividad3-app ---
+    #1  SUCCESS  actividad 3
+    #2  FAILURE  prueba rota
+    #3  SUCCESS  corregida
+    #4  SUCCESS  actividad 4: imagen
+    #5  SUCCESS  actividad 5: despliegue
+    #6  SUCCESS  version 2.0.0
+    #7  FAILURE  3.0.0 con error
+    #8  SUCCESS  3.0.0 corregida
