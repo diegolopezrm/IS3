@@ -1,0 +1,42 @@
+########## ACTIVIDAD 3 — PIPELINE DESDE GIT ##########
+$ repo: https://github.com/diegolopezrm/taller-jenkins-app  (publico, rama main)
+$ job actividad3-app: Pipeline script from SCM, Script Path: Jenkinsfile
+
+--- Console Output (extracto) ---
+  Checking out git https://github.com/diegolopezrm/taller-jenkins-app.git into /var/jenkins_home/workspace/actividad3-app@script/325b951f380c866e8fe0995ddd3ff411f3e29e0ff57ac8611158104d7a562d11 to read Jenkinsfile
+  Cloning the remote Git repository
+  Cloning repository https://github.com/diegolopezrm/taller-jenkins-app.git
+  Checking out Revision 5cd01a9a4f02115b450da98c8657e37246e522b2 (refs/remotes/origin/main)
+  Cloning the remote Git repository
+  Cloning repository https://github.com/diegolopezrm/taller-jenkins-app.git
+  Checking out Revision 5cd01a9a4f02115b450da98c8657e37246e522b2 (refs/remotes/origin/main)
+  $ docker run -t -d -u 1000:1000 --network host -w /var/jenkins_home/workspace/actividad3-app -v /var/jenkins_home/workspace/actividad3-app:/var/jenkins_home/workspace/actividad3-app:rw,z -v /var/jenkins_home/workspace/actividad3-app@tmp:/var/jenkins_home/workspace/actividad3-app@tmp:rw,z -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** maven:3.9-eclipse-temurin-21 cat
+  [INFO] BUILD SUCCESS
+  [INFO]  T E S T S
+  [INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.373 s -- in taller.AppTest
+  [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in taller.CalculadoraTest
+  [INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+  [INFO] BUILD SUCCESS
+  [INFO] BUILD SUCCESS
+  Archiving artifacts
+
+--- Test Result ---
+  pasaron: 6   fallaron: 0   omitidas: 0
+
+--- Build Artifacts ---
+  target/taller-app.jar
+
+--- etapas ---
+    Declarative: Checkout SCM  SUCCESS   1731 ms
+    Compilar                   SUCCESS   7227 ms
+    Pruebas                    SUCCESS   6353 ms
+    Empaquetar                 SUCCESS   4142 ms
+    Declarative: Post Actions  SUCCESS   169 ms
+
+--- MINI-RETO: una prueba rota (build #2) ---
+  resultado: FAILURE
+  [ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.017 s <<< FAILURE! -- in taller.CalculadoraTest
+  org.opentest4j.AssertionFailedError: expected: <6> but was: <5>
+  [ERROR]   CalculadoraTest.sumaDosNumeros:11 expected: <6> but was: <5>
+  [ERROR] Tests run: 6, Failures: 1, Errors: 0, Skipped: 0
+  tras corregir (build #3): SUCCESS
