@@ -1,0 +1,27 @@
+########## ACTIVIDAD 4 — CONSTRUIR LA IMAGEN ##########
+$ cp ../soluciones/Jenkinsfile-actividad4 Jenkinsfile  +  git push  +  Build Now
+
+--- etapas (build #4) ---
+    Pruebas                    SUCCESS   5 s
+    Construir imagen           SUCCESS   39 s
+    Smoke test                 SUCCESS   4 s
+    Declarative: Post Actions  SUCCESS   0 s
+
+--- Console Output: lo que pide buscar el paso 5 ---
+  [INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+  {"status":"ok"}+ exit 0
+  Imagen lista: taller-app:4
+  Finished: SUCCESS
+
+--- paso 6: la imagen quedó en el dind ---
+$ docker exec jenkins-docker docker images taller-app
+taller-app:4  341MB
+
+--- paso 7 (opcional): probar la imagen a mano ---
+$ docker exec jenkins-docker docker run -d --name prueba -p 9000:8000 taller-app:4
+  contenedor arrancado
+$ docker exec jenkins curl -s 'http://docker:9000/sumar?a=2&b=3'
+  {"resultado":5}
+  /health  -> {"status":"ok"}
+  /version -> {"version":"1.0.0"}
+  (contenedor de prueba eliminado)
