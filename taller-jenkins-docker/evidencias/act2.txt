@@ -1,0 +1,84 @@
+########## ACTIVIDAD 2 — PRIMER PIPELINE ##########
+$ Job actividad2-hola, tipo Pipeline, Definition: Pipeline script
+$ Build Now -> #1
+
+--- Console Output (extracto) ---
+  Started by user Diego Lopez Camacho
+  [Pipeline] Start of Pipeline
+  [Pipeline] node
+  Running on Jenkins in /var/jenkins_home/workspace/actividad2-hola
+  [Pipeline] withEnv
+  [Pipeline] stage
+  [Pipeline] echo
+  Hola desde Taller Jenkins + Docker — build #1
+  [Pipeline] stage
+  [Pipeline] sh
+  + whoami
+  jenkins
+  + hostname
+  90338c421f69
+  + date
+  Wed Oct 28 14:02:09 UTC 2026
+  [Pipeline] sh
+  + docker version
+  Client: Docker Engine - Community
+   Version:           29.9.2
+   API version:       1.56
+   Go version:        go1.26.10
+   Git commit:        a82e528
+   Built:             Tue Oct 20 18:44:23 2026
+   OS/Arch:           linux/arm64
+   Context:           default
+  
+  Server: Docker Engine - Community
+   Engine:
+    Version:          29.9.2
+    API version:      1.56 (minimum version 1.40)
+    Go version:       go1.26.10
+    Git commit:       0367cbe
+    Built:            Tue Oct 20 18:44:59 2026
+    OS/Arch:          linux/arm64
+    Experimental:     false
+   containerd:
+    Version:          v2.4.2
+    GitCommit:        
+   runc:
+    Version:          1.5.2
+    GitCommit:        v1.5.2-0-g29dd3dc
+   docker-init:
+    Version:          0.19.0
+    GitCommit:        de40ad0
+
+--- etapas que reporta el pipeline ---
+    Saludo                 SUCCESS    79 ms
+    Info del entorno       SUCCESS    677 ms
+    Etapas en paralelo     SUCCESS    73 ms
+    A                      SUCCESS    67 ms
+    B                      SUCCESS    66 ms
+    Declarative: Post Actions SUCCESS    44 ms
+
+--- final de la consola ---
+  Tarea A
+  Tarea B
+  Pipeline OK ✔
+  Finished: SUCCESS
+
+--- MINI-RETO 1: parámetro NOMBRE ---
+$ Build with Parameters -> NOMBRE=Diego  (build #3)
+
+--- MINI-RETO 1: parámetro NOMBRE ---
+  Hola, mundo — desde Taller Jenkins + Docker, build #3
+  Finished: SUCCESS
+
+--- MINI-RETO 1: parámetro NOMBRE (build #4) ---
+  Hola, Diego — desde Taller Jenkins + Docker, build #4
+  Finished: SUCCESS
+
+--- MINI-RETO 2: fallo forzado (build #5) ---
+  resultado: FAILURE
+  + exit 1
+  Algo falló ✘
+  ERROR: script returned exit code 1
+  Finished: FAILURE
+
+  (etapa Falla retirada: HTTP 200)
