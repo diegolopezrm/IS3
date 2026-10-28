@@ -1,0 +1,9 @@
+######## EJERCICIO 5 — ROJO INICIAL ########
+  EstadisticasTest.contarAprobadosConMezclaDeNotas:147 expected: <3> but was: <2>
+  EstadisticasTest.contarAprobadosConUnaSolaNota:134 expected: <1> but was: <0>
+  EstadisticasTest.contarAprobadosCuentaLaUltimaNota:141 expected: <1> but was: <0>
+  EstadisticasTest.contarAprobadosEnElLimite:153 expected: <1> but was: <0>
+  EstadisticasTest.maximoDeUnSoloDato:38 expected: <-7> but was: <0>
+  EstadisticasTest.maximoDeValoresNegativos:31 expected: <-2> but was: <0>
+  EstadisticasTest.medianaDeCantidadImpar:91 expected: <3.0> but was: <2.0>
+  EstadisticasTest.medianaDeCantidadPar:99 expected: <2.5> but was: <2.0>

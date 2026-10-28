@@ -67,6 +67,15 @@ docker compose up -d --build
 | Clase 02 | [clase02/INFORME-CLASE02.md](clase02/INFORME-CLASE02.md) · [PDF](clase02/INFORME-CLASE02.pdf) |
 | Clase 03 | [clase03/INFORME-CLASE03.md](clase03/INFORME-CLASE03.md) · [PDF](clase03/INFORME-CLASE03.pdf) |
 | Clase 04 | [clase04/INFORME-CLASE04.md](clase04/INFORME-CLASE04.md) · [PDF](clase04/INFORME-CLASE04.pdf) |
+| Taller de pruebas unitarias | [taller-pruebas-unitarias/INFORME-TALLER.md](taller-pruebas-unitarias/INFORME-TALLER.md) · [PDF](taller-pruebas-unitarias/INFORME-TALLER.pdf) |
+
+El taller de pruebas unitarias se ejecuta aparte, no es una app:
+
+```bash
+cd taller-pruebas-unitarias
+mvn clean test                          # 73 pruebas
+open target/site/jacoco/index.html      # reporte de cobertura
+```
 
 ## Progreso
 

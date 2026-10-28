@@ -1,0 +1,28 @@
+########## SUITE COMPLETA ##########
+$ mvn clean test
+  Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in co.edu.uis.taller.ej1.CalculadoraNotasTest
+  Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in co.edu.uis.taller.ej0.SaludoTest
+  Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in co.edu.uis.taller.ej5.EstadisticasTest
+  Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.045 s -- in co.edu.uis.taller.ej2.ValidadorContrasenaTest
+  Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.630 s -- in co.edu.uis.taller.ej3.ServicioEstudiantesTest
+  Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in co.edu.uis.taller.ej4.CarritoComprasTest
+  Tests run: 73, Failures: 0, Errors: 0, Skipped: 0
+
+########## COBERTURA (target/site/jacoco/index.html) ##########
+  CLASE                          INSTR   RAMAS   LÍNEAS
+  ----------------------------------------------------
+  ej0/Saludo                      100%     n/a      2/2
+  ej1/CalculadoraNotas            100%    100%    11/11
+  ej2/ValidadorContrasena         100%    100%    13/13
+  ej3/Estudiante                  100%     n/a      1/1
+  ej3/RepositorioEstudiantesBD     44%     n/a      2/4
+  ej3/ServicioEstudiantes         100%    100%    18/18
+  ej4/CarritoCompras              100%    100%    16/16
+  ej4/CarritoCompras.Item         100%     n/a      2/2
+  ej5/Estadisticas                100%    100%    30/30
+  ----------------------------------------------------
+  TOTAL                            98%    100%
+
+  RepositorioEstudiantesBD queda en 44% a propósito: es la implementación
+  real contra base de datos y en pruebas unitarias no se usa. Lo único
+  ejecutado de ella es la prueba que muestra por qué hacen falta mocks.

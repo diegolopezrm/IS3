@@ -1,0 +1,8 @@
+######## EJERCICIO 1 ########
+--- ROJO: la prueba del valor límite 3.0 falla con el código original ---
+  [ERROR] Tests run: 10, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.033 s <<< FAILURE! -- in co.edu.uis.taller.ej1.CalculadoraNotasTest
+  org.opentest4j.AssertionFailedError: 3.0 es el límite inclusive: debe aprobar ==> expected: <true> but was: <false>
+  [ERROR] Tests run: 10, Failures: 1, Errors: 0, Skipped: 0
+  VERDE  Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in co.edu.uis.taller.ej1.CalculadoraNotasTest
+  VERDE  Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

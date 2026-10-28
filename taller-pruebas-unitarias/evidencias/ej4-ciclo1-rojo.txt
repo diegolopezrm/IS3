@@ -1,0 +1,6 @@
+[ERROR] /Users/diegolopez/Documents/UIS/IS3/taller-pruebas-unitarias/src/test/java/co/edu/uis/taller/ej4/CarritoComprasTest.java:[25,32] cannot find symbol
+  symbol:   method cantidadProductos()
+[ERROR] /Users/diegolopez/Documents/UIS/IS3/taller-pruebas-unitarias/src/test/java/co/edu/uis/taller/ej4/CarritoComprasTest.java:[26,32] cannot find symbol
+  symbol:   method total()
+[INFO] BUILD FAILURE
+[ERROR] /Users/diegolopez/Documents/UIS/IS3/taller-pruebas-unitarias/src/test/java/co/edu/uis/taller/ej4/CarritoComprasTest.java:[25,32] cannot find symbol
