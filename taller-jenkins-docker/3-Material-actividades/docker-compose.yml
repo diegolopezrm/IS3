@@ -1,0 +1,54 @@
+# Taller Jenkins + Docker
+# Levanta Jenkins y un demonio Docker-in-Docker (dind) para que los
+# pipelines puedan usar contenedores como agentes y construir imágenes.
+#
+#   docker compose up -d --build
+#   docker compose logs jenkins     # para ver la contraseña inicial
+#   http://localhost:8081   (8080 ocupado en este equipo)
+
+services:
+  docker:
+    image: docker:dind
+    container_name: jenkins-docker
+    privileged: true
+    command: ["--storage-driver", "overlay2"]
+    ports:
+      # El 8000 del host ya lo usa otro contenedor en este equipo, así que la app
+      # desplegada sale por el 8001. Dentro del dind sigue siendo el 8000.
+      - "8001:8000"     # Actividad 5: la app desplegada, en http://localhost:8001
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home   # mismo workspace que Jenkins
+      - docker-cache:/var/lib/docker     # imágenes del dind (sobreviven a "down")
+    networks:
+      jenkins:
+        aliases: [docker]
+
+  jenkins:
+    build: ./jenkins
+    image: taller/jenkins-docker:latest
+    container_name: jenkins
+    restart: unless-stopped
+    depends_on: [docker]
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: "1"
+    ports:
+      # El 8080 del host también está ocupado; Jenkins queda en el 8081.
+      - "8081:8080"     # interfaz web, en http://localhost:8081
+      - "50000:50000"   # conexión de agentes
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+    networks: [jenkins]
+
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:
+  docker-cache:
+
+networks:
+  jenkins:

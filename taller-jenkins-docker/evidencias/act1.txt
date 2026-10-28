@@ -1,0 +1,55 @@
+########## ACTIVIDAD 1 — LEVANTAR JENKINS ##########
+$ docker compose build
+ Image taller/jenkins-docker:latest Built 
+ Image taller/jenkins-docker:latest Built 
+
+[exited with code 0]
+
+$ docker compose up -d
+   Network 3-material-actividades_jenkins Creating 
+   Network 3-material-actividades_jenkins Created 
+   Volume 3-material-actividades_docker-cache Creating 
+   Volume 3-material-actividades_docker-cache Created 
+   Volume 3-material-actividades_jenkins-data Creating 
+   Volume 3-material-actividades_jenkins-data Created 
+   Volume 3-material-actividades_jenkins-docker-certs Creating 
+   Volume 3-material-actividades_jenkins-docker-certs Created 
+   Container jenkins-docker Created 
+   Container jenkins Created 
+   Container jenkins-docker Started 
+   Container jenkins Started 
+
+$ docker compose ps
+  NAME             STATUS          PORTS
+  jenkins          Up 14 seconds   0.0.0.0:50000->50000/tcp, [::]:50000->50000/tcp, 0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp
+  jenkins-docker   Up 14 seconds   2375-2376/tcp, 0.0.0.0:8001->8000/tcp, [::]:8001->8000/tcp
+
+$ docker compose logs jenkins | grep 'fully up'
+  Jenkins is fully up and running
+
+$ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+  1aa76f79...ed13   (32 caracteres, la oculto en la evidencia)
+
+$ curl http://localhost:8081   (Jenkins remapeado del 8080)
+  -> HTTP 403
+
+$ docker exec jenkins docker version   (paso 10: Client y Server)
+  Client: Docker Engine - Community
+  Server: Docker Engine - Community
+    Version:          29.9.2
+    Version:          v2.4.2
+
+$ paso 8-9: usuario admin creado y asistente completado
+  installState: None   mode: NORMAL   ejecutores: 2
+
+$ el panel responde autenticado
+  GET / -> HTTP 200
+  panel: Welcome to Jenkins!
+
+$ paso 11: Docker Pipeline en los plugins instalados
+  Docker Pipeline  v653.v2f2c08eff0ec  activo=True
+
+  PUNTO DE CONTROL ACTIVIDAD 1:
+    - Jenkins muestra el panel Welcome to Jenkins!      OK
+    - docker version muestra Client y Server             OK
+    - Docker Pipeline aparece entre los plugins          OK
