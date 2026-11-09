@@ -1,0 +1,62 @@
+
+######################################################################
+# GUIA 2 - AUTH-SERVICE (8081)
+######################################################################
+  [1 login admin] POST /auth/login {"username": "admin", "password": "admin123"}
+      -> HTTP 200  OK   {"token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5NDI0MDc5MSwiZXhwIjoxNzk0MjQ0MzkxfQ.ObOZeU_TJjKn2masBUZhmFkClBOIfTYDAxXgPW76Mtk", "username": "admin", "role": "ADMIN"}
+  [2 clave incorrecta] POST /auth/login {"username": "admin", "password": "malaclave"}
+      -> HTTP 401  OK   {"success": false, "message": "Credenciales inválidas", "errorCode": "AUTH_INVALID_CREDENTIALS", "status": 401, "path": "/auth/login", "timestamp": "2026-11-09T11:13:12.058618"}
+  [3 cuerpo vacio] POST /auth/login {}
+      -> HTTP 400  OK   {"path": "/auth/login", "success": false, "errorCode": "VALIDATION_ERROR", "message": "Error de validación", "errors": {"password": "no debe estar vacío", "username": "no debe estar vacío"}, "status": 400}
+  [4 validate con token admin] GET /auth/validate
+      -> HTTP 200  OK   {"valid": true, "username": "admin", "role": "ADMIN", "estudianteId": null}
+  [5 validate token estudiante (estudianteId)] GET /auth/validate
+      -> HTTP 200  OK   {"valid": true, "username": "estudiante", "role": "ESTUDIANTE", "estudianteId": 1}
+  [6 validate sin autorizar] GET /auth/validate
+      -> HTTP 401  OK   {"success": false, "message": "Debe enviar un token Bearer válido", "errorCode": "AUTH_INVALID_TOKEN", "status": 401, "path": "/auth/validate", "timestamp": "2026-11-09T11:13:12.09201"}
+  [7 token alterado] GET /auth/validate
+      -> HTTP 401  OK   {"success": false, "message": "Token inválido o expirado", "errorCode": "AUTH_INVALID_TOKEN", "status": 401, "path": "/auth/validate", "timestamp": "2026-11-09T11:13:12.095015"}
+
+######################################################################
+# GUIA 3 - ESTUDIANTES-SERVICE (8082)
+######################################################################
+  [1 paginado] GET /api/estudiantes?page=0&size=5
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "nombre": "Marta", "apellido": "Cedillo", "email": "estudiante0@demoacademico.edu", "edad": 18}, {"id": 2, "nombre": "María Elena", "apellido": "Botello", "email": "estudiante1@demoacademico.edu", "edad": 19}, {"id": 3, "nombre": "Josefina", "apellido...
+  [2 inexistente] GET /api/estudiantes/999
+      -> HTTP 404  OK   {"success": false, "message": "Estudiante no encontrado: 999", "data": null}
+  [3 alta valida] POST /api/estudiantes {"nombre": "Ana", "apellido": "Ruiz", "email": "ana.ruiz@correo.edu", "edad": 20}
+      -> HTTP 201  OK   {"success": true, "message": "Estudiante creado", "data": {"id": 51, "nombre": "Ana", "apellido": "Ruiz", "email": "ana.ruiz@correo.edu", "edad": 20}}
+  [4 email duplicado] POST /api/estudiantes {"nombre": "Ana", "apellido": "Ruiz", "email": "ana.ruiz@correo.edu", "edad": 20}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe un estudiante con el email: ana.ruiz@correo.edu", "data": null}
+  [5 validacion email+edad] POST /api/estudiantes {"nombre": "X", "apellido": "Y", "email": "no-es-correo", "edad": 0}
+      -> HTTP 400  OK   {"success": false, "message": "Error de validación", "data": {"edad": "La edad mínima es 1", "email": "El email no es válido"}}
+  [6 PUT email de otro] PUT /api/estudiantes/2 {"nombre": "Est", "apellido": "Dos", "email": "estudiante2@demoacademico.edu", "edad": 21}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe otro estudiante con el email: estudiante2@demoacademico.edu", "data": null}
+  [7a DOCENTE consulta] GET /api/estudiantes/1
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"id": 1, "nombre": "Marta", "apellido": "Cedillo", "email": "estudiante0@demoacademico.edu", "edad": 18}}
+  [7b DOCENTE crea] POST /api/estudiantes {"nombre": "D", "apellido": "D", "email": "d@d.edu", "edad": 20}
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/estudiantes", "timestamp": "2026-11-09T11:13:12.282602"}
+  [8 ESTUDIANTE consulta] GET /api/estudiantes/1
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/estudiantes/1", "timestamp": "2026-11-09T11:13:12.287286"}
+  [9 id no numerico] GET /api/estudiantes/abc
+      -> HTTP 400  OK   {"success": false, "message": "Solicitud inválida: revise los parámetros de la URL y el formato del JSON", "data": null}
+
+######################################################################
+# GUIA 4 - CURSOS-SERVICE (8083)
+######################################################################
+  [1 listar cursos semilla] GET /api/cursos
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "codigo": "IS3-001", "nombre": "Ingeniería de Software III", "descripcion": "Arquitectura y microservicios", "creditos": 4, "docenteResponsable": "Docente principal", "cupoMaximo": 30}, {"id": 2, "codigo": "BD2-001", "nombre": "Bases de Datos II", "de...
+  [2 alta curso] POST /api/cursos {"codigo": "ARQ-001", "nombre": "Arquitectura", "creditos": 3, "docenteResponsable": "Docente", "cupoMaximo": 20}
+      -> HTTP 201  OK   {"success": true, "message": "Curso creado", "data": {"id": 4, "codigo": "ARQ-001", "nombre": "Arquitectura", "descripcion": null, "creditos": 3, "docenteResponsable": "Docente", "cupoMaximo": 20}}
+  [3 codigo duplicado] POST /api/cursos {"codigo": "ARQ-001", "nombre": "Arquitectura", "creditos": 3, "docenteResponsable": "Docente", "cupoMaximo": 20}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe un curso con el código: ARQ-001", "data": null}
+  [4 creditos 11] POST /api/cursos {"codigo": "ARQ-002", "nombre": "Otro", "creditos": 11, "docenteResponsable": "D", "cupoMaximo": 20}
+      -> HTTP 400  OK   {"success": false, "message": "Error de validación", "data": {"creditos": "Los créditos máximos son 10"}}
+  [5 PUT codigo de otro] PUT /api/cursos/1 {"codigo": "BD2-001", "nombre": "IS3", "creditos": 4, "docenteResponsable": "D", "cupoMaximo": 30}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe otro curso con el código: BD2-001", "data": null}
+  [6a ESTUDIANTE lista] GET /api/cursos
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "codigo": "IS3-001", "nombre": "Ingeniería de Software III", "descripcion": "Arquitectura y microservicios", "creditos": 4, "docenteResponsable": "Docente principal", "cupoMaximo": 30}, {"id": 2, "codigo": "BD2-001", "nombre": "Bases de Datos II", "de...
+  [6b ESTUDIANTE crea] POST /api/cursos {"codigo": "E-1", "nombre": "E", "creditos": 2, "docenteResponsable": "D", "cupoMaximo": 5}
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/cursos", "timestamp": "2026-11-09T11:13:12.435315"}
+  [7 DELETE curso sin matriculas] DELETE /api/cursos/4
+      -> HTTP 200  OK   {"success": true, "message": "Curso eliminado", "data": null}

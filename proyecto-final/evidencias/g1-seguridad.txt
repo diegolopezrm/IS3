@@ -1,0 +1,20 @@
+
+######################################################################
+# GUIA 1 - SEGURIDAD  (Swagger de cursos 8083, salvo que se indique)
+######################################################################
+  tokens: admin=True  docente=True  estudiante=True
+
+  [1 sin autorizar] GET /api/cursos/1
+      -> HTTP 401  OK   {"success": false, "message": "Debe enviar un token Bearer válido", "errorCode": "AUTH_HEADER_MISSING", "status": 401, "path": "/api/cursos/1", "timestamp": "2026-11-09T11:12:34.456172"}
+  [2 token inventado] GET /api/cursos/1
+      -> HTTP 401  OK   {"success": false, "message": "El token no es válido o expiró", "errorCode": "TOKEN_INVALID", "status": 401, "path": "/api/cursos/1", "timestamp": "2026-11-09T11:12:34.522954"}
+  [3 DOCENTE crea curso] POST /api/cursos {"codigo": "X-1", "nombre": "X", "creditos": 3, "docenteResponsable": "D", "cupoMaximo": 5}
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/cursos", "timestamp": "2026-11-09T11:12:34.545636"}
+  [4 ESTUDIANTE lista cursos] GET /api/cursos
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "codigo": "IS3-001", "nombre": "Ingeniería de Software III", "descripcion": "Arquitectura y microservicios", "creditos": 4, "docenteResponsable": "Docente principal", "cupoMaximo": 30}, {"id": 2, "codigo": "BD2-001", "nombre": "Bases de Datos II", "de...
+  [5 ESTUDIANTE lista estudiantes] GET /api/estudiantes
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/estudiantes", "timestamp": "2026-11-09T11:12:34.629352"}
+  [6 api-docs sin token] GET /v3/api-docs
+      -> HTTP 200  OK   {"openapi": "3.0.1", "info": {"title": "Cursos Service", "description": "CRUD de cursos protegido con JWT", "version": "1.0.0"}, "servers": [{"url": "http://localhost:8083", "description": "Generated server url"}], "security": [{"bearerAuth": []}], "paths": {"/api/cursos/{id}": {"get": {"tags": ["curso-controller"],...
+  [7 ADMIN matricula (propaga token)] POST /api/matriculas {"estudianteId": 2, "cursoId": 2}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 1, "estudianteId": 2, "cursoId": 2, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}

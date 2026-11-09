@@ -1,0 +1,2 @@
+########## GUIA 10 - DOCKER, SWAGGER Y PRUEBAS ##########
+$ docker compose up -d --build

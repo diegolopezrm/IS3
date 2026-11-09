@@ -1,0 +1,39 @@
+
+######################################################################
+# GUIA 7 - EXTENSION E1: INTEGRIDAD ENTRE SERVICIOS
+######################################################################
+  [parte del estado que deja E2: curso 3 con 2 matriculas activas]
+  [1 conteo activas del curso 3] GET /api/matriculas/activas/conteo?cursoId=3
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": 2}
+  [2 sin filtro] GET /api/matriculas/activas/conteo
+      -> HTTP 400  OK   {"success": false, "message": "Envíe exactamente uno de los parámetros: estudianteId o cursoId", "data": null}
+  [3 borrar curso con matriculas] DELETE /api/cursos/3
+      -> HTTP 409  OK   {"success": false, "message": "No se puede eliminar: el curso tiene 2 matrícula(s) activa(s)", "data": null}
+  [4 borrar estudiante con matricula] DELETE /api/estudiantes/1
+      -> HTTP 409  OK   {"success": false, "message": "No se puede eliminar: el estudiante tiene 1 matrícula(s) activa(s)", "data": null}
+  [5 borrar estudiante sin matriculas] DELETE /api/estudiantes/50
+      -> HTTP 200  OK   {"success": true, "message": "Estudiante eliminado", "data": null}
+  [6a matricular est 5 en curso 2] POST /api/matriculas {"estudianteId": 5, "cursoId": 2}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 4, "estudianteId": 5, "cursoId": 2, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [6b borrar curso 2] DELETE /api/cursos/2
+      -> HTTP 409  OK   {"success": false, "message": "No se puede eliminar: el curso tiene 1 matrícula(s) activa(s)", "data": null}
+  [7a anular esa matricula] PUT /api/matriculas/4/anular
+      -> HTTP 200  OK   {"success": true, "message": "Matrícula anulada", "data": {"id": 4, "estudianteId": 5, "cursoId": 2, "fechaMatricula": "2026-11-09", "estado": "ANULADA"}}
+  [7b borrar curso 2 de nuevo] DELETE /api/cursos/2
+      -> HTTP 200  OK   {"success": true, "message": "Curso eliminado", "data": null}
+
+######################################################################
+# GUIA 8 - EXTENSION E4: MIS MATRICULAS
+######################################################################
+  [1 validate del estudiante] GET /auth/validate
+      -> HTTP 200  OK   {"valid": true, "username": "estudiante", "role": "ESTUDIANTE", "estudianteId": 1}
+  [2 matriculas de varios estudiantes (contexto)] GET /api/matriculas
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "estudianteId": 1, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}, {"id": 2, "estudianteId": 2, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ANULADA"}, {"id": 3, "estudianteId": 3, "cursoId": 3, "fechaMatricula": "2026-1...
+  [3 ESTUDIANTE: /mias] GET /api/matriculas/mias
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": [{"id": 1, "estudianteId": 1, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}]}
+  [4 ESTUDIANTE: listado completo] GET /api/matriculas
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/matriculas", "timestamp": "2026-11-09T11:14:58.06592"}
+  [5 ESTUDIANTE: matricula de otro] GET /api/matriculas/2
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/matriculas/2", "timestamp": "2026-11-09T11:14:58.072359"}
+  [6 ADMIN: /mias] GET /api/matriculas/mias
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/matriculas/mias", "timestamp": "2026-11-09T11:14:58.07803"}

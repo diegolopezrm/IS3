@@ -1,0 +1,15 @@
+\usepackage{fancyvrb}
+\usepackage{etoolbox}
+\AtBeginEnvironment{verbatim}{\scriptsize\linespread{1}\selectfont}
+\makeatletter
+\renewcommand{\verbatim@font}{\ttfamily\scriptsize}
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-1.8ex \@plus -0.4ex \@minus -.2ex}{0.9ex \@plus.2ex}%
+  {\normalfont\large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-1.4ex \@plus -0.3ex \@minus -.2ex}{0.5ex \@plus.2ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+\setlength{\parskip}{0.3ex}
+\setlength{\parindent}{0pt}
+\linespread{0.98}

@@ -1,0 +1,24 @@
+
+######################################################################
+# GUIA 5 - MATRICULAS-SERVICE (8084)  [datos recien iniciados]
+######################################################################
+  [1 alta matricula] POST /api/matriculas {"estudianteId": 1, "cursoId": 1}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 1, "estudianteId": 1, "cursoId": 1, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [2 duplicada] POST /api/matriculas {"estudianteId": 1, "cursoId": 1}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe una matrícula activa para el estudiante y curso indicados", "data": null}
+  [3 estudiante inexistente] POST /api/matriculas {"estudianteId": 999, "cursoId": 1}
+      -> HTTP 400  OK   {"success": false, "message": "El estudiante indicado no existe", "data": null}
+  [4 curso inexistente] POST /api/matriculas {"estudianteId": 1, "cursoId": 999}
+      -> HTTP 400  OK   {"success": false, "message": "El curso indicado no existe", "data": null}
+  [5 cuerpo vacio] POST /api/matriculas {}
+      -> HTTP 400  OK   {"success": false, "message": "Error de validación", "data": {"cursoId": "El id del curso es obligatorio", "estudianteId": "El id del estudiante es obligatorio"}}
+  [6 anular] PUT /api/matriculas/1/anular
+      -> HTTP 200  OK   {"success": true, "message": "Matrícula anulada", "data": {"id": 1, "estudianteId": 1, "cursoId": 1, "fechaMatricula": "2026-11-09", "estado": "ANULADA"}}
+  [7 anular de nuevo] PUT /api/matriculas/1/anular
+      -> HTTP 400  OK   {"success": false, "message": "La matrícula ya se encuentra anulada", "data": null}
+  [8 anulada no bloquea] POST /api/matriculas {"estudianteId": 1, "cursoId": 1}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 2, "estudianteId": 1, "cursoId": 1, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [9a DOCENTE consulta] GET /api/matriculas
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"content": [{"id": 1, "estudianteId": 1, "cursoId": 1, "fechaMatricula": "2026-11-09", "estado": "ANULADA"}, {"id": 2, "estudianteId": 1, "cursoId": 1, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}], "pageable": {"pageNumber": 0, "pageSize": 20, "sort": [], "offset":...
+  [9b DOCENTE crea] POST /api/matriculas {"estudianteId": 2, "cursoId": 1}
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/matriculas", "timestamp": "2026-11-09T11:13:55.892138"}

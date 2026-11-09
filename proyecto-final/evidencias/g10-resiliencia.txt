@@ -1,0 +1,17 @@
+
+######################################################################
+# PASOS DE RESILIENCIA (los que detienen un servicio a proposito)
+######################################################################
+  --- matriculas guia, paso 10: estudiantes-service caido ---
+  [10 matricular sin estudiantes-service] POST /api/matriculas {"estudianteId": 4, "cursoId": 1}
+      -> HTTP 502  OK   {"success": false, "message": "No fue posible consultar el estudiante (código remoto -1)", "data": null}
+
+  --- E1 guia, paso 8: matriculas-service caido ---
+  [8 borrar curso sin matriculas-service] DELETE /api/cursos/1
+      -> HTTP 502  OK   {"success": false, "message": "No fue posible verificar las matrículas del curso (código remoto -1)", "data": null}
+  [   el curso sigue existiendo] GET /api/cursos/1
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"id": 1, "codigo": "IS3-001", "nombre": "Ingeniería de Software III", "descripcion": "Arquitectura y microservicios", "creditos": 4, "docenteResponsable": "Docente principal", "cupoMaximo": 30}}
+
+  --- seguridad guia, paso 9: auth-service caido ---
+  [9 token valido pero sin quien lo valide] GET /api/cursos
+      -> HTTP 401  OK   {"success": false, "message": "No fue posible validar el token con auth-service", "errorCode": "TOKEN_VALIDATION_ERROR", "status": 401, "path": "/api/cursos", "timestamp": "2026-11-09T11:19:30.070074"}

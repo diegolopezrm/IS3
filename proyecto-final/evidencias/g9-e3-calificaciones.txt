@@ -1,0 +1,25 @@
+
+######################################################################
+# GUIA 9 - EXTENSION E3: CALIFICACIONES-SERVICE (8085)
+######################################################################
+  [matricula 1 ACTIVA del estudiante 1, matricula 2 ANULADA]
+  [1 DOCENTE nota corte 1] POST /api/calificaciones {"matriculaId": 1, "corte": 1, "nota": 4.0}
+      -> HTTP 201  OK   {"success": true, "message": "Calificación registrada", "data": {"id": 1, "matriculaId": 1, "corte": 1, "nota": 4.0, "registradoPor": "docente", "fechaRegistro": "2026-11-09T11:15:18.88508"}}
+  [2 DOCENTE nota corte 2] POST /api/calificaciones {"matriculaId": 1, "corte": 2, "nota": 3.0}
+      -> HTTP 201  OK   {"success": true, "message": "Calificación registrada", "data": {"id": 2, "matriculaId": 1, "corte": 2, "nota": 3.0, "registradoPor": "docente", "fechaRegistro": "2026-11-09T11:15:18.939494"}}
+  [3 nota repetida en el corte] POST /api/calificaciones {"matriculaId": 1, "corte": 1, "nota": 4.0}
+      -> HTTP 400  OK   {"success": false, "message": "Ya existe una nota para el corte 1 de esta matrícula; use PUT para corregirla", "data": null}
+  [4 corte 4 y nota 5.5] POST /api/calificaciones {"matriculaId": 1, "corte": 4, "nota": 5.5}
+      -> HTTP 400  OK   {"success": false, "message": "Error de validación", "data": {"nota": "La nota máxima es 5.0", "corte": "El corte debe ser 1, 2 o 3"}}
+  [5 sobre matricula anulada] POST /api/calificaciones {"matriculaId": 2, "corte": 1, "nota": 4.0}
+      -> HTTP 400  OK   {"success": false, "message": "La matrícula 2 no está activa", "data": null}
+  [6 ADMIN corrige la nota] PUT /api/calificaciones/1 {"nota": 4.5}
+      -> HTTP 200  OK   {"success": true, "message": "Calificación actualizada", "data": {"id": 1, "matriculaId": 1, "corte": 1, "nota": 4.5, "registradoPor": "admin", "fechaRegistro": "2026-11-09T11:15:19.008872"}}
+  [7 resumen con promedio ponderado] GET /api/calificaciones/matricula/1
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"matriculaId": 1, "calificaciones": [{"id": 1, "matriculaId": 1, "corte": 1, "nota": 4.5, "registradoPor": "admin", "fechaRegistro": "2026-11-09T11:15:19.008872"}, {"id": 2, "matriculaId": 1, "corte": 2, "nota": 3.0, "registradoPor": "docente", "fechaRegistro": "2026-11-09...
+  [8 matricula inexistente] GET /api/calificaciones/matricula/99
+      -> HTTP 404  OK   {"success": false, "message": "La matrícula 99 no existe", "data": null}
+  [9 ESTUDIANTE registra nota] POST /api/calificaciones {"matriculaId": 1, "corte": 3, "nota": 4.0}
+      -> HTTP 403  OK   {"success": false, "message": "No tiene permisos para acceder a este recurso", "errorCode": "AUTH_FORBIDDEN", "status": 403, "path": "/api/calificaciones", "timestamp": "2026-11-09T11:15:19.063715"}
+  [10 ESTUDIANTE: mis notas] GET /api/calificaciones/mias
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": [{"matriculaId": 1, "calificaciones": [{"id": 1, "matriculaId": 1, "corte": 1, "nota": 4.5, "registradoPor": "admin", "fechaRegistro": "2026-11-09T11:15:19.008872"}, {"id": 2, "matriculaId": 1, "corte": 2, "nota": 3.0, "registradoPor": "docente", "fechaRegistro": "2026-11-0...

@@ -1,0 +1,16 @@
+Evidencias del analisis del proyecto final
+Repositorio analizado: https://github.com/alejandroria94/proyecto-s3
+Commit: bedab2c  ("Cambio en las guias")
+Fecha de ejecucion: 9 de noviembre de 2026
+Entorno: macOS arm64, Java 21.0.9, Maven 3.9.12
+
+Archivos:
+  mvn-test.txt              las 27 pruebas de los cinco servicios
+  g1-seguridad.txt          guia 1
+  g2-4-modulos.txt          guias 2, 3 y 4 (auth, estudiantes, cursos)
+  g5-matriculas.txt         guia 5
+  g6-e2-cupos.txt           guia 6  (E2)
+  g7-8-e1-e4.txt            guias 7 y 8  (E1, E4)
+  g9-e3-calificaciones.txt  guia 9  (E3)
+  g10-resiliencia.txt       los pasos que detienen un servicio a proposito
+  g10-docker.txt            guia 10

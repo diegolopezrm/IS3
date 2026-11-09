@@ -1,0 +1,20 @@
+
+######################################################################
+# GUIA 6 - EXTENSION E2: CUPOS POR CURSO
+######################################################################
+  [1 curso RED-001 cupoMaximo] GET /api/cursos/3
+      -> HTTP 200  OK   {"success": true, "message": "OK", "data": {"id": 3, "codigo": "RED-001", "nombre": "Redes de Computadores", "descripcion": "Fundamentos de redes TCP/IP", "creditos": 3, "docenteResponsable": "Docente de redes", "cupoMaximo": 2}}
+  [2 matricula est 1] POST /api/matriculas {"estudianteId": 1, "cursoId": 3}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 1, "estudianteId": 1, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [3 matricula est 2 (llena el cupo)] POST /api/matriculas {"estudianteId": 2, "cursoId": 3}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 2, "estudianteId": 2, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [4 est 3: sin cupos] POST /api/matriculas {"estudianteId": 3, "cursoId": 3}
+      -> HTTP 400  OK   {"success": false, "message": "El curso no tiene cupos disponibles (2/2)", "data": null}
+  [5 anular la del est 2] PUT /api/matriculas/2/anular
+      -> HTTP 200  OK   {"success": true, "message": "Matrícula anulada", "data": {"id": 2, "estudianteId": 2, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ANULADA"}}
+  [6 ahora si hay cupo] POST /api/matriculas {"estudianteId": 3, "cursoId": 3}
+      -> HTTP 201  OK   {"success": true, "message": "Matrícula registrada", "data": {"id": 3, "estudianteId": 3, "cursoId": 3, "fechaMatricula": "2026-11-09", "estado": "ACTIVA"}}
+  [7 bajar cupo por debajo de las activas] PUT /api/cursos/3 {"codigo": "RED-001", "nombre": "Redes", "creditos": 3, "docenteResponsable": "Docente", "cupoMaximo": 1}
+      -> HTTP 400  OK   {"success": false, "message": "El cupo no puede ser menor que las 2 matrícula(s) activa(s) del curso", "data": null}
+  [8 alta sin cupoMaximo] POST /api/cursos {"codigo": "SIN-CUPO", "nombre": "Sin cupo", "creditos": 3, "docenteResponsable": "D"}
+      -> HTTP 400  OK   {"success": false, "message": "Error de validación", "data": {"cupoMaximo": "El cupo máximo es obligatorio"}}

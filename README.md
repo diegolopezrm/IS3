@@ -69,6 +69,7 @@ docker compose up -d --build
 | Clase 04 | [clase04/INFORME-CLASE04.md](clase04/INFORME-CLASE04.md) · [PDF](clase04/INFORME-CLASE04.pdf) |
 | Taller de pruebas unitarias | [taller-pruebas-unitarias/INFORME-TALLER.md](taller-pruebas-unitarias/INFORME-TALLER.md) · [PDF](taller-pruebas-unitarias/INFORME-TALLER.pdf) |
 | Taller de Jenkins con Docker | [taller-jenkins-docker/INFORME-TALLER-JENKINS.md](taller-jenkins-docker/INFORME-TALLER-JENKINS.md) · [PDF](taller-jenkins-docker/INFORME-TALLER-JENKINS.pdf) · [README](taller-jenkins-docker/README.md) |
+| Proyecto final | [proyecto-final/INFORME-PROYECTO-FINAL.md](proyecto-final/INFORME-PROYECTO-FINAL.md) · [PDF](proyecto-final/INFORME-PROYECTO-FINAL.pdf) · [README](proyecto-final/README.md) |
 
 El taller de pruebas unitarias se ejecuta aparte, no es una app:
 
