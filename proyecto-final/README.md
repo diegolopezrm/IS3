@@ -10,8 +10,25 @@ guías y responder las preguntas de análisis citando el código.
 
 ## El informe
 
-[INFORME-PROYECTO-FINAL.pdf](INFORME-PROYECTO-FINAL.pdf) — 24 páginas, una sección
-por guía, con el diagrama de arquitectura y la propuesta de mejora.
+[INFORME-PROYECTO-FINAL.pdf](INFORME-PROYECTO-FINAL.pdf) — 29 páginas, en dos partes.
+
+Las secciones 2 a 12 siguen el recorrido de las diez guías, que es lo que pide el
+entregable: una sección por guía con sus evidencias y sus preguntas respondidas.
+Las secciones 13 a 18 lo miran de forma transversal, siguiendo los diez criterios
+de la actividad.
+
+| Criterio de la actividad | Sección |
+|---|---|
+| 1. Microservicios, módulos y tecnologías | 13 |
+| 2. Responsabilidades de cada microservicio | 13.1, y el detalle en 4–11 |
+| 3. Arquitectura: capas, dependencias y patrones | 2, 9.2, 17.1 |
+| 4. Funcionalidades y quién participa | 14 |
+| 5. Roles y permisos | 15 |
+| 6. Comunicación entre microservicios | 7.2–7.5, 9.2, 11.6, 12.2 |
+| 7. Persistencia: bases, entidades y relaciones | 16 |
+| 8. Calidad del código y buenas prácticas | 17 |
+| 9. Seguridad, errores y pruebas | 3, 4, 7.3, 11.5, 12.6 |
+| 10. Oportunidades de mejora (seis) | 18 |
 
 ## Evidencias
 

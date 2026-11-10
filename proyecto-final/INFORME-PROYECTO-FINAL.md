@@ -14,6 +14,21 @@ Las verificaciones no las hice a mano en Swagger una por una: escribí un peque�
 
 El entorno fue macOS sobre arm64, con Java 21.0.9 y Maven 3.9.12. Todas las evidencias están en la carpeta `evidencias/` de este mismo entregable.
 
+El informe tiene dos partes. Las secciones 2 a 12 siguen el recorrido de las diez guías, que es lo que pide el entregable del proyecto: una sección por guía, con sus evidencias y sus preguntas respondidas. Las secciones 13 a 18 lo miran de forma transversal, siguiendo los diez criterios de la actividad. Esta tabla dice dónde está cada uno:
+
+| Criterio de la actividad | Dónde se trata |
+|---|---|
+| 1. Microservicios, módulos y tecnologías | 13.1, 13.2, 13.3 |
+| 2. Responsabilidades de cada microservicio | 13.1, y el detalle en 4 a 11 |
+| 3. Arquitectura: capas, dependencias y patrones | 2.1, 2.2, 9.2, 17.1 |
+| 4. Funcionalidades y quién participa | 14 |
+| 5. Roles y permisos | 15, y las verificaciones de 3, 5, 6, 7 y 10 |
+| 6. Comunicación entre microservicios | 7.2 a 7.5, 9.2, 11.6, 12.2 |
+| 7. Persistencia: bases, entidades y relaciones | 16.1, 16.2, 16.3 |
+| 8. Calidad del código y buenas prácticas | 17.1, 17.2, 5.4, 6.2 |
+| 9. Seguridad, errores y pruebas | 3, 4, 7.3, 11.5, 12.6 |
+| 10. Oportunidades de mejora (cinco o más) | 18.1 a 18.7 |
+
 ## 1.1 Resultado de las pruebas automatizadas
 
 ```
@@ -849,61 +864,326 @@ Ese hueco es exactamente lo que cubren las verificaciones manuales de las guías
 
 \newpage
 
-# 13. Propuesta de mejora
+# 13. Servicios, módulos y tecnologías
 
-De todo lo que encontré, el riesgo que me parece más grave no es el más vistoso. La condición de carrera del cupo (sección 8.3) es un fallo de corrección real, y las inconsistencias de formato que menciono abajo son molestas. Pero hay uno que, si se materializa, deja sin valor a todos los demás controles del sistema.
+Hasta aquí recorrí el sistema guía por guía. Esta segunda parte lo mira de forma transversal, siguiendo los diez criterios de la actividad.
 
-## 13.1 El riesgo: el secreto de firma está en el repositorio
+## 13.1 Los cinco microservicios
 
-En `auth-service/src/main/resources/application.yml` está `app.jwt.secret` con su valor literal. Ese secreto es lo único que impide fabricar tokens: con él, cualquiera firma un `{"sub":"quien sea","role":"ADMIN"}` que los cinco servicios aceptarán como legítimo.
+| Servicio | Puerto | Base | Responsabilidad principal |
+|---|---:|---|---|
+| auth-service | 8081 | `authdb` | Autenticar, emitir el JWT y validarlo para todos los demás |
+| estudiantes-service | 8082 | `estudiantesdb` | CRUD de estudiantes con correo único |
+| cursos-service | 8083 | `cursosdb` | CRUD de cursos con código único y cupo máximo |
+| matriculas-service | 8084 | `matriculasdb` | Registrar, consultar y anular matrículas; valida las reglas del dominio |
+| calificaciones-service | 8085 | `calificacionesdb` | Notas por corte y promedio ponderado |
 
-Lo que lo hace tan serio es que **ningún otro control del sistema ayuda**. No hace falta robar una contraseña, así que BCrypt no sirve de nada. No hace falta saltarse el filtro, porque el token es válido. No queda rastro distinguible en los registros, porque la petición es indistinguible de una real. Y como el secreto está en el historial de Git, borrarlo de la versión actual no lo elimina: sigue recuperable en cualquier commit anterior, y en un repositorio público lo tiene quien quiera.
+`auth-service` es el único que no participa en el negocio académico: existe para que los otros cuatro no tengan que saber nada de contraseñas ni de firmas.
 
-Es, además, el riesgo más barato de corregir de todos los que encontré.
+## 13.2 Módulos internos
 
-## 13.2 Qué haría
+Los cinco repiten la misma división de paquetes, lo que hace que moverse entre ellos sea inmediato:
 
-**Sacar el secreto a una variable de entorno**, con un valor de desarrollo como respaldo:
+```
+co.edu.<servicio>service
+├── controller/   endpoints REST + GlobalExceptionHandler
+├── handler/      conversión DTO <-> entidad
+├── service/      reglas de negocio (interfaz + Impl)
+├── repository/   acceso a datos (Spring Data JPA)
+├── model/        entidades y enumeraciones
+├── dto/          contratos de entrada y de salida
+├── api/          ApiResponse, ApiErrorResponse, ResponseBuilder
+├── exception/    BusinessException, NotFoundException, ConflictException,
+│                 RemoteServiceException
+├── security/     AuthValidationFilter y los manejadores de 401/403
+├── client/       clientes Feign hacia otros servicios
+└── config/       SecurityConfig, OpenApiConfig, DataSeeder,
+                  FeignAuthPropagationConfig
+```
+
+Hay dos excepciones. `auth-service` no tiene `client/` —no llama a nadie— pero sí un `util/JwtUtils`, que es el único sitio del sistema donde se firma y se lee un token. Y `matriculas-service` añade `security/UsuarioAutenticado`, el principal de E4 que lleva el `estudianteId`.
+
+## 13.3 Tecnologías
+
+| Tecnología | Versión | Para qué | Dónde |
+|---|---|---|---|
+| Java | 21 | Lenguaje; usa `record` en los DTO de E4 | los cinco |
+| Spring Boot | 3.2.5 | Base de la aplicación | los cinco |
+| Spring Web | — | Controladores REST | los cinco |
+| Spring Data JPA | — | Repositorios y consultas derivadas | los cinco |
+| Spring Security | — | Cadena de filtros, roles y 401/403 | los cinco |
+| Bean Validation | — | `@Valid` sobre los DTO de entrada | los cinco |
+| H2 | — | Base en memoria | los cinco |
+| springdoc-openapi | — | Swagger UI y `/v3/api-docs` | los cinco |
+| Spring Cloud OpenFeign | 2023.0.1 | Llamadas declarativas entre servicios | los cuatro de negocio |
+| jjwt (api/impl/jackson) | — | Firmar y leer el JWT | solo auth |
+| JavaFaker | — | Generar los 50 estudiantes semilla | solo estudiantes |
+| JUnit 5 + Mockito | — | Las 27 pruebas | los cinco |
+| Docker / Compose | — | Empaquetado y orquestación | los cinco |
+
+Dos cosas que me parecen bien resueltas. La primera es que **jjwt está solo en auth-service**: ningún otro servicio tiene siquiera la capacidad técnica de firmar un token, lo que refuerza por diseño que la autoridad esté en un solo sitio. La segunda es que `spring-cloud-starter-openfeign` falta precisamente en auth, que es el único que no llama a nadie; las dependencias reflejan la arquitectura en vez de arrastrar lo mismo a todas partes.
+
+# 14. Funcionalidades y qué servicios intervienen
+
+| Funcionalidad | Punto de entrada | Servicios que intervienen | Reglas que aplica |
+|---|---|---|---|
+| Iniciar sesión | `POST /auth/login` | auth | Verifica con BCrypt; emite el JWT con rol y, si aplica, `estudianteId` |
+| Validar un token | `GET /auth/validate` | auth | Comprueba firma y expiración |
+| Gestionar estudiantes | `/api/estudiantes` | estudiantes -> matriculas (al borrar) | Correo único; no borrar con matrículas activas |
+| Gestionar cursos | `/api/cursos` | cursos -> matriculas (al borrar y al bajar el cupo) | Código único; créditos 1–10; cupo obligatorio; cupo no menor que las activas; no borrar con activas |
+| Registrar una matrícula | `POST /api/matriculas` | matriculas -> estudiantes, cursos | Existencia de ambos; no duplicada; hay cupo |
+| Anular una matrícula | `PUT /api/matriculas/{id}/anular` | matriculas | No anular dos veces |
+| Contar matrículas activas | `GET /api/matriculas/activas/conteo` | matriculas | Exactamente un filtro |
+| Ver mis matrículas | `GET /api/matriculas/mias` | matriculas | Filtra por el `estudianteId` del token |
+| Registrar una nota | `POST /api/calificaciones` | calificaciones -> matriculas | Matrícula activa; una nota por corte; corte 1–3; nota 0–5 |
+| Corregir una nota | `PUT /api/calificaciones/{id}` | calificaciones -> matriculas | Matrícula activa; guarda quién corrigió |
+| Consultar notas de una matrícula | `GET /api/calificaciones/matricula/{id}` | calificaciones -> matriculas | Promedio ponderado sobre los cortes presentes |
+| Ver mis notas | `GET /api/calificaciones/mias` | calificaciones -> matriculas (`/mias`) | La autorización la resuelve matrículas |
+
+La funcionalidad que más servicios moviliza es registrar una matrícula: toca cuatro (matrículas, auth, estudiantes y cursos) y cuesta seis peticiones HTTP, como desglosé en 7.2. La más interesante de diseño es "ver mis notas", porque calificaciones no decide quién es el estudiante: delega esa decisión en matrículas propagando el token, como expliqué en 11.6.
+
+# 15. Roles y permisos
+
+Hay tres roles y el sistema no tiene registro de usuarios: los tres vienen del `AuthDataSeeder` de auth-service.
+
+| Usuario | Contraseña | Rol | `estudianteId` |
+|---|---|---|---|
+| admin | `admin123` | ADMIN | — |
+| docente | `docente123` | DOCENTE | — |
+| estudiante | `estudiante123` | ESTUDIANTE | 1 |
+
+Esta es la matriz completa de permisos, leída de los cuatro `SecurityConfig` y comprobada en las verificaciones:
+
+| Recurso | ADMIN | DOCENTE | ESTUDIANTE |
+|---|:---:|:---:|:---:|
+| `GET /api/estudiantes/**` | sí | sí | **403** |
+| `POST·PUT·DELETE /api/estudiantes/**` | sí | **403** | **403** |
+| `GET /api/cursos/**` | sí | sí | sí |
+| `POST·PUT·DELETE /api/cursos/**` | sí | **403** | **403** |
+| `GET /api/matriculas/**` | sí | sí | **403** |
+| `GET /api/matriculas/mias` | **403** | **403** | sí |
+| `POST·PUT /api/matriculas/**` | sí | **403** | **403** |
+| `POST·PUT /api/calificaciones/**` | sí | sí | **403** |
+| `GET /api/calificaciones/matricula/{id}` | sí | sí | **403** |
+| `GET /api/calificaciones/mias` | **403** | **403** | sí |
+| Swagger, `/v3/api-docs`, consola H2 | público | público | público |
+
+Tres observaciones. La primera es que **el estudiante solo ve cursos y lo suyo**: ni la lista de estudiantes ni las matrículas ajenas. La segunda es que los endpoints `/mias` están cerrados para ADMIN y DOCENTE, y no por descuido: no tienen un estudiante asociado, así que `/mias` no significa nada para ellos. La tercera es que **el DOCENTE escribe notas pero no matrícula**, lo que reparte la escritura según quién hace cada cosa en la vida real.
+
+Las reglas se aplican en dos niveles distintos: el rol lo decide `SecurityConfig` por ruta y método, y la pertenencia del dato la decide el controlador leyendo el `estudianteId` del token. Confundirlos sería el error de la sección 10.2.
+
+# 16. Persistencia de datos
+
+## 16.1 Una base por servicio
+
+Cada servicio tiene su propia H2 en memoria, sin ninguna conexión entre ellas. No hay un esquema compartido ni llaves foráneas que crucen servicios, y eso es lo que obliga a que la integridad se resuelva por HTTP (E1).
+
+El mapeo es con Spring Data JPA, con Hibernate generando el esquema al arrancar y un `DataSeeder` por servicio que inserta los datos de partida: 3 usuarios, 50 estudiantes, 3 cursos, y ninguna matrícula ni calificación.
+
+## 16.2 Entidades
+
+```
+  Usuario                     Estudiante                  Curso
+  ─────────                   ──────────                  ─────
+  id            PK            id            PK            id              PK
+  username      unique        nombre                      codigo          unique
+  password      (BCrypt)      apellido                    nombre
+  role                        email         unique        descripcion
+  estudianteId  ─ ─ ─ ─ ─┐    edad                        creditos
+                         ┊                                docenteResponsable
+                         ┊                                cupoMaximo
+                         ┊
+  Matricula              ┊                 Calificacion
+  ─────────              ┊                 ────────────
+  id              PK     ┊                 id             PK
+  estudianteId  ─ ─ ─ ─ ─┴ ─ ─ ─►          matriculaId  ─ ─ ─ ─►  (Matricula.id)
+  cursoId       ─ ─ ─ ─ ─ ─ ─ ─ ─►         corte          1, 2 o 3
+  fechaMatricula                           nota           precision 2, scale 1
+  estado        ACTIVA | ANULADA           registradoPor
+                                           fechaRegistro
+                                           unique (matricula_id, corte)
+
+  ─── relación real (misma base)      ─ ─ ─ referencia lógica (otro servicio, sin FK)
+```
+
+Todas las relaciones entre entidades de servicios distintos son **referencias lógicas**: un `Long` que apunta a un id de otra base, sin integridad referencial que lo garantice. Es la consecuencia directa de una base por servicio, y es lo que hace posible la matrícula huérfana de la sección 9.5.
+
+Un detalle de diseño que ya comenté en 6.4 y que aquí se ve mejor: `Matricula` guarda `cursoId` y no el código del curso. Guardar la clave estable en lugar del dato legible es lo que hace que renombrar un curso no rompa nada.
+
+## 16.3 Restricciones y consultas
+
+Las restricciones de unicidad declaradas en las entidades son tres:
+
+| Entidad | Restricción | Protege |
+|---|---|---|
+| `Usuario` | `username` único | Que no haya dos cuentas iguales |
+| `Estudiante` | `uk_estudiante_email` | Correo único |
+| `Curso` | `uk_curso_codigo` | Código único |
+| `Calificacion` | `uk_calificacion_matricula_corte` | Una nota por corte |
+| `Matricula` | **ninguna** | — |
+
+Esa última fila es un hallazgo. Las reglas de correo único, código único y una-nota-por-corte están respaldadas por la base además de por el servicio, así que sobreviven a dos peticiones simultáneas. **La regla "no hay dos matrículas activas del mismo estudiante en el mismo curso" vive solo en el servicio**, en `existsByEstudianteIdAndCursoIdAndEstado`. Es la misma asimetría que explica por qué la carrera de la sección 8.3 puede materializarse, y la recojo como mejora en 18.2.
+
+Las consultas son todas derivadas del nombre del método, sin JPQL ni SQL escrito a mano:
+
+```java
+boolean existsByEmail(String email);                                   // estudiantes
+boolean existsByCodigoAndIdNot(String codigo, Long id);                // cursos
+boolean existsByEstudianteIdAndCursoIdAndEstado(Long, Long, Estado);   // matriculas
+long    countByCursoIdAndEstado(Long cursoId, EstadoMatricula estado); // matriculas (cupo y E1)
+List<Matricula> findByEstudianteIdOrderByIdDesc(Long estudianteId);    // matriculas (E4)
+boolean existsByMatriculaIdAndCorte(Long matriculaId, Integer corte);  // calificaciones
+```
+
+Es legible y consistente, aunque tiene un límite: cuando una consulta se complica, el nombre del método se vuelve impronunciable y conviene pasar a `@Query`.
+
+# 17. Calidad del código
+
+## 17.1 Lo que está bien resuelto
+
+**La separación de responsabilidades es real, no decorativa.** Seguí varias peticiones de punta a punta y en ninguna encontré lógica de negocio en un controlador ni acceso a datos en un handler. La regla de correo único está en `EstudianteServiceImpl`, no en `EstudianteController`; la traducción de errores remotos está en `obtenerRemoto`, no repartida por el servicio.
+
+**La cohesión de cada clase es alta.** `JwtUtils` solo firma y lee tokens. `ResponseBuilder` solo arma respuestas. `AuthValidationFilter` solo decide si la petición sigue. Cada una tiene un motivo para cambiar.
+
+**Los errores están centralizados.** Un `GlobalExceptionHandler` por servicio mapea cada excepción del dominio a su código HTTP, y por eso las respuestas de error son consistentes sin que ningún controlador tenga un `try/catch`.
+
+**El acoplamiento entre servicios es por contrato.** Cada uno define su propio DTO para lo que recibe de otro (`EstudianteRemotoDTO`, `CursoRemotoDTO`, `MatriculaRemotaDTO`) en vez de importar el ajeno, con lo que no hay dependencias de compilación cruzadas.
+
+**Los comentarios explican el porqué, no el qué.** El de `doFilter` fuera del `try`, el del orden de las reglas en E4, el de por qué solo se consulta el cupo al bajarlo. Son exactamente los sitios donde un lector futuro se preguntaría "¿y esto por qué está así?".
+
+## 17.2 Lo que señalaría
+
+**Diecisiete clases duplicadas en cada servicio.** Las listé en 6.2. El riesgo concreto es que un fallo en `AuthValidationFilter` haya que corregirlo cinco veces, y que alguna quede sin corregir.
+
+**El formato de las respuestas no es uniforme.** Lo encontré ejecutando las verificaciones. `POST /auth/login` devuelve el DTO pelado:
+
+```json
+{"token":"eyJ...","username":"admin","role":"ADMIN"}
+```
+
+mientras el resto del sistema devuelve el envoltorio:
+
+```json
+{"success":true,"message":"OK","data":{...}}
+```
+
+Y hay tres formas distintas de reportar un error de validación: auth usa `{"errors":{...}}`, los servicios de negocio usan `{"data":{...}}`, y los errores de seguridad traen `errorCode`, `status`, `path` y `timestamp` que los otros no tienen. Un cliente necesita tres parsers para lo que debería ser uno.
+
+**Falta la restricción de unicidad en `matricula`**, como expliqué en 16.3.
+
+**No hay pruebas de integración entre servicios.** Las 27 pruebas sustituyen las dependencias por dobles, así que un cambio en el JSON de estudiantes no rompería ninguna prueba de matrículas: el fallo solo aparecería en ejecución.
+
+**`spring.jpa.open-in-view` está activo**, con el aviso correspondiente en el arranque de todos los servicios. Es el valor por defecto de Spring Boot y no causa problemas aquí, pero mantiene la sesión de JPA abierta durante el renderizado de la respuesta, lo que en un sistema con más carga provoca consultas inesperadas y conexiones retenidas más tiempo del necesario.
+
+# 18. Oportunidades de mejora
+
+Ordenadas por lo que costaría que no se corrigieran, no por dificultad.
+
+## 18.1 Sacar el secreto del JWT del repositorio · seguridad
+
+**El problema.** `app.jwt.secret` está con su valor literal en `auth-service/src/main/resources/application.yml`. Ese secreto es lo único que impide fabricar tokens: con él, cualquiera firma un `{"sub":"x","role":"ADMIN"}` que los cinco servicios aceptarán como legítimo.
+
+Lo que lo hace grave es que **ningún otro control ayuda**. No hace falta robar una contraseña, así que BCrypt no sirve. No hay que saltarse el filtro, porque el token es válido. No queda rastro distinguible en los registros. Y como está en el historial de Git, borrarlo de la versión actual no lo elimina: sigue recuperable en cualquier commit anterior.
+
+**Qué haría.** Pasarlo a variable de entorno con un valor solo de desarrollo:
 
 ```yaml
 app:
   jwt:
     secret: ${JWT_SECRET:clave-solo-para-desarrollo-local}
-    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
 ```
 
-El cambio es de una línea y no toca `JwtUtils`, porque Spring ya resuelve `${...}` desde el entorno. En Docker se inyecta igual que las URLs de los servicios, que ya se hace así:
+y en el compose exigirlo, de modo que Compose se niegue a arrancar si falta:
 
 ```yaml
-auth-service:
-  environment:
-    JWT_SECRET: ${JWT_SECRET:?hay que definir JWT_SECRET}
+environment:
+  JWT_SECRET: ${JWT_SECRET:?hay que definir JWT_SECRET}
 ```
 
-Esa sintaxis con `:?` hace que Compose se niegue a arrancar si la variable no existe, lo que evita el peor de los finales: desplegar en producción con la clave de desarrollo sin que nadie se dé cuenta.
+Hay que rotar el secreto, porque el actual ya es público, y en producción usar un gestor de secretos en lugar de variables planas, que se ven con un `docker inspect`.
 
-**Rotar el secreto**, porque el actual ya es público. Hay que cambiarlo en cuanto se saque del repositorio; rotarlo invalida todos los tokens vivos, que con una hora de expiración es un inconveniente menor.
+**Beneficio.** Elimina el único fallo del sistema cuyo daño no tiene techo, y cuesta una línea por servicio. No rompe nada: Spring ya resuelve `${...}` desde el entorno y `JwtUtils` no cambia.
 
-**En producción, un gestor de secretos** en lugar de variables de entorno planas, porque las variables se ven con un `docker inspect` y aparecen en los volcados de proceso.
+## 18.2 Cerrar las dos condiciones de carrera · correctitud
 
-## 13.3 Por qué esta y no otra
+**El problema.** Son dos y las describí en 8.3 y 9.5. En el cupo, dos peticiones simultáneas cuentan las matrículas activas antes de que ninguna guarde, las dos concluyen que hay sitio y el curso acaba con una matrícula de más. En el borrado, entre que cursos consulta el conteo y ejecuta el `delete` puede registrarse una matrícula, que queda huérfana. Ninguno de los dos deja rastro: el sistema responde 201 y 200 como si todo hubiera ido bien.
 
-La comparé con las otras dos candidatas:
+Agrava el primero lo que encontré en 16.3: `matricula` es la única entidad sin restricción de unicidad, así que tampoco hay una red de seguridad en la base.
 
-| | Secreto fuera del código | Carrera del cupo (8.3) | Librería compartida (6.2) |
-|---|---|---|---|
-| Qué pasa si no se corrige | Suplantación total e indetectable | Un curso con una matrícula de más | Un fallo corregido en 4 de 5 servicios |
-| Probabilidad | Alta: el repositorio es público | Baja, pero real bajo carga | Media, con el tiempo |
-| Costo de corregir | Una línea por servicio | Rediseñar la reserva de cupo | Montar y versionar una librería |
-| Riesgo de la corrección | Ninguno | Puede serializar las matrículas | Reintroduce acoplamiento |
+**Qué haría.** Dos cosas de alcance distinto. La barata y de efecto inmediato es declarar la restricción que falta:
 
-El cupo es un fallo de corrección y habría que arreglarlo, pero su daño es acotado y reparable a mano. La librería compartida es una mejora de mantenibilidad que puede esperar y que, mal hecha, empeora las cosas. El secreto es el único cuyo daño no tiene techo ni se detecta, y es a la vez el más barato de corregir. Por eso lo pongo primero.
+```java
+@Table(name = "matricula", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_matricula_estudiante_curso_activa",
+                      columnNames = {"estudiante_id", "curso_id", "estado"})
+})
+```
 
-Si hubiera presupuesto para una segunda, iría a la reserva atómica de cupo que describí en 8.3, porque es la única de las dos carreras que un usuario puede provocar sin proponérselo.
+Esto no resuelve el cupo, pero sí cierra la carrera del duplicado y alinea `matricula` con las otras tres entidades. El `GlobalExceptionHandler` ya traduce `DataIntegrityViolationException` a 409, así que no hay que tocar nada más.
 
-\newpage
+Para el cupo hace falta que la decisión sea atómica, y como el cupo vive en cursos y el conteo en matrículas, la opción limpia es invertir el flujo: que `cursos-service` lleve un contador de plazas ocupadas y exponga una reserva atómica que matrículas consume. Quien pierde la carrera recibe el error en vez de una matrícula de más.
 
-# 14. Conclusiones
+**Beneficio.** La restricción es prácticamente gratis y elimina un fallo silencioso. La reserva cuesta más, pero es la única solución que no depende de que las dos operaciones compartan base de datos, que es justamente lo que no pasa en microservicios.
+
+## 18.3 Cachear la validación del token · rendimiento
+
+**El problema.** Cada petición a un servicio de negocio genera otra a `auth-service`. Registrar una matrícula cuesta seis peticiones HTTP y **tres de ellas son validaciones del mismo token**, como desglosé en 7.2. Son secuenciales, así que las latencias se suman, y además convierten a auth en un punto único de falla: lo comprobé en el paso 9 de seguridad, donde un token válido pasó a dar 401 con auth caído.
+
+**Qué haría.** Una caché de corta vida en cada servicio, con el token como clave y el resultado de la validación como valor, con un vencimiento de entre treinta segundos y un minuto:
+
+```java
+@Cacheable(value = "tokens", key = "#authorization")
+public TokenValidationResponse validar(String authorization) { ... }
+```
+
+El vencimiento corto es lo que mantiene la propiedad valiosa del diseño actual: un token revocado deja de funcionar en menos de un minuto, en lugar de al instante. Me parece un intercambio razonable frente a la alternativa de validar la firma localmente, que exigiría repartir el secreto entre los cinco servicios.
+
+**Beneficio.** En la matrícula, las tres validaciones del mismo token pasan a una. Reduce la latencia de cada operación y baja mucho la carga sobre auth, que hoy recibe tantas peticiones como todo el resto del sistema junto.
+
+## 18.4 Extraer la infraestructura transversal a una librería · mantenibilidad
+
+**El problema.** Las diecisiete clases de 6.2 están repetidas en los cinco servicios: el filtro de autenticación, los manejadores de 401 y 403, `ApiResponse`, `ResponseBuilder`, el `GlobalExceptionHandler`, las excepciones del dominio y la configuración de Feign y de OpenAPI. Si aparece un fallo en el filtro, hay que corregirlo cinco veces y existe el riesgo real de que alguna quede sin corregir.
+
+**Qué haría.** Una librería `plataforma-common` publicada como artefacto versionado, **solo con lo transversal**. El código de dominio —`CursoServiceImpl`, los DTO, las entidades— se queda duplicado a propósito, porque ahí la duplicación es lo que permite que cada servicio evolucione solo.
+
+El riesgo de esta mejora hay que decirlo: una librería compartida es una dependencia común, y si se versiona mal reintroduce por la puerta de atrás el acoplamiento que los microservicios querían evitar. Hay que versionarla con semántica estricta para que un servicio pueda quedarse en una versión anterior sin romperse.
+
+**Beneficio.** Un fallo de seguridad se corrige en un sitio. Y aprovecharía el cambio para unificar el formato de respuesta que señalé en 17.2, de modo que `/auth/login` y los errores de validación usen el mismo envoltorio que el resto: un cliente pasaría de necesitar tres parsers a uno.
+
+## 18.5 Romper los ciclos con eliminación lógica · arquitectura
+
+**El problema.** E1 introduce dos ciclos: estudiantes <-> matrículas y cursos <-> matrículas, como dibujé en 9.2. No hay un orden correcto de arranque, cambiar un contrato obliga a coordinar en las dos direcciones, y un fallo en matrículas se propaga a las eliminaciones de los otros dos. Lo comprobé en el paso 8 de E1: con matrículas caído, `DELETE /api/cursos/1` devuelve 502.
+
+**Qué haría.** Sustituir la verificación remota por eliminación lógica: marcar el curso o el estudiante como inactivo, y que matrículas rechace matricular en algo inactivo. Lo comparé en detalle en 9.3.
+
+Lo elegante es que **invierte quién pregunta**. Hoy cursos consulta a matrículas antes de borrar, lo que crea el ciclo. Con eliminación lógica es matrículas quien consulta el estado del curso cuando le toca decidir, y matrículas ya consulta cursos de todos modos: no añade ninguna llamada nueva.
+
+Hay que decidir qué pasa con las matrículas activas de un curso que se desactiva. Lo razonable es dejarlas terminar e impedir solo las nuevas, que es como funciona una asignatura que deja de ofrecerse.
+
+**Beneficio.** Desaparecen los dos ciclos, el borrado deja de depender de que matrículas esté vivo, y se conserva el historial en lugar de borrarlo. De paso elimina de raíz la matrícula huérfana de 9.5, porque nunca desaparece nada.
+
+## 18.6 Healthchecks, reintentos y pruebas de contrato · operación
+
+**El problema.** Son tres huecos relacionados, todos sobre lo que pasa entre servicios. El `depends_on` del compose solo ordena el arranque y no espera a que el servicio esté listo, así que matrículas puede quedar operativo antes que estudiantes y devolver un 502 intermitente aunque la configuración sea correcta. No hay reintentos: un fallo momentáneo de red se convierte directamente en un error para el usuario. Y las 27 pruebas usan dobles, de modo que un cambio en el JSON de estudiantes no rompería ninguna prueba de matrículas.
+
+**Qué haría.** Un `healthcheck` por servicio con `depends_on: condition: service_healthy`, como detallé en 12.3. Reintentos con espera creciente en los clientes Feign, solo para los errores que tiene sentido reintentar —tiempo agotado o conexión rechazada, nunca un 400 o un 404—. Y unas pocas pruebas de contrato que verifiquen que el JSON que produce estudiantes es el que `EstudianteRemotoDTO` espera leer.
+
+**Beneficio.** Desaparecen los fallos intermitentes de arranque, que son de los que más tiempo cuestan de diagnosticar porque solo ocurren una de cada diez veces. Los reintentos absorben los fallos momentáneos sin que el usuario los vea. Y las pruebas de contrato cubren justamente el hueco que las unitarias no pueden cubrir, que es el que señalé en 12.6.
+
+## 18.7 Resumen
+
+| # | Mejora | Categoría | Costo | Qué evita |
+|---|---|---|---|---|
+| 18.1 | Secreto fuera del repositorio | Seguridad | Muy bajo | Suplantación total e indetectable |
+| 18.2 | Unicidad en `matricula` y reserva de cupo | Correctitud | Bajo / Alto | Duplicados y cupos excedidos en silencio |
+| 18.3 | Caché de validación del token | Rendimiento | Bajo | Latencia acumulada y carga sobre auth |
+| 18.4 | Librería de infraestructura común | Mantenibilidad | Medio | Corregir un fallo cinco veces |
+| 18.5 | Eliminación lógica | Arquitectura | Medio | Dos ciclos y matrículas huérfanas |
+| 18.6 | Healthchecks, reintentos y contratos | Operación | Medio | Fallos intermitentes y roturas invisibles |
+
+Si solo pudiera hacer dos, serían 18.1 y la primera mitad de 18.2: entre las dos cuestan unas pocas líneas y cierran el fallo de mayor impacto y el único fallo de corrección que un usuario puede provocar sin proponérselo.
+
+# 19. Conclusiones
 
 Lo que más me llevo de analizar este proyecto es que casi todas las decisiones de diseño que vi son **intercambios**, no aciertos o errores. Validar el token contra `auth-service` en cada petición da control a cambio de latencia y de un punto único de falla; lo comprobé tumbando ese servicio y viendo cómo un token perfectamente válido pasaba a dar 401. Que `matriculas-service` defina su propio `EstudianteRemotoDTO` evita el acoplamiento a cambio de que los dos contratos puedan desincronizarse en silencio. E1 protege la integridad entre servicios a cambio de crear dos ciclos de dependencias. Ninguna de las tres es gratis, y lo útil del ejercicio fue poder nombrar qué se paga en cada caso.
 
